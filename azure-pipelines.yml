@@ -1,0 +1,201 @@
+# Azure DevOps Pipeline for RFID Inventory Tracker
+# This pipeline builds, tests, and deploys the application to Azure
+
+trigger:
+  branches:
+    include:
+    - main
+    - develop
+  paths:
+    exclude:
+    - README.md
+    - docs/*
+
+pr:
+  branches:
+    include:
+    - main
+  paths:
+    exclude:
+    - README.md
+    - docs/*
+
+pool:
+  vmImage: 'ubuntu-latest'
+
+variables:
+  buildConfiguration: 'Release'
+  dotNetFramework: '8.0.x'
+  azureSubscription: 'Azure-Service-Connection'
+  webAppName: 'rfid-inventory-tracker'
+
+stages:
+- stage: Build
+  displayName: 'Build and Test'
+  jobs:
+  - job: BuildAndTest
+    displayName: 'Build and Test Application'
+    steps:
+    - task: UseDotNet@2
+      displayName: 'Install .NET SDK'
+      inputs:
+        packageType: 'sdk'
+        version: $(dotNetFramework)
+
+    - task: DotNetCoreCLI@2
+      displayName: 'Restore NuGet Packages'
+      inputs:
+        command: 'restore'
+        projects: '**/*.csproj'
+
+    - task: DotNetCoreCLI@2
+      displayName: 'Build Solution'
+      inputs:
+        command: 'build'
+        projects: '**/*.csproj'
+        arguments: '--configuration $(buildConfiguration) --no-restore'
+
+    - task: DotNetCoreCLI@2
+      displayName: 'Run Unit Tests'
+      inputs:
+        command: 'test'
+        projects: '**/*Tests.csproj'
+        arguments: '--configuration $(buildConfiguration) --no-build --collect:"XPlat Code Coverage" --logger trx --results-directory $(Agent.TempDirectory)'
+
+    - task: PublishTestResults@2
+      displayName: 'Publish Test Results'
+      inputs:
+        testResultsFormat: 'VSTest'
+        testResultsFiles: '$(Agent.TempDirectory)/**/*.trx'
+        mergeTestResults: true
+
+    - task: PublishCodeCoverageResults@1
+      displayName: 'Publish Code Coverage'
+      inputs:
+        codeCoverageTool: 'Cobertura'
+        summaryFileLocation: '$(Agent.TempDirectory)/**/coverage.cobertura.xml'
+
+    - task: DotNetCoreCLI@2
+      displayName: 'Publish Application'
+      inputs:
+        command: 'publish'
+        projects: 'InventoryTracker.Web/InventoryTracker.Web.csproj'
+        arguments: '--configuration $(buildConfiguration) --output $(Build.ArtifactStagingDirectory) --no-build'
+
+    - task: PublishBuildArtifacts@1
+      displayName: 'Publish Build Artifacts'
+      inputs:
+        pathToPublish: '$(Build.ArtifactStagingDirectory)'
+        artifactName: 'webapp'
+
+- stage: SecurityScan
+  displayName: 'Security Scanning'
+  dependsOn: Build
+  jobs:
+  - job: SecurityScan
+    displayName: 'Run Security Scans'
+    steps:
+    - task: SonarQubePrepare@5
+      displayName: 'Prepare SonarQube Analysis'
+      inputs:
+        SonarQube: 'SonarQube-Service-Connection'
+        scannerMode: 'MSBuild'
+        projectKey: 'rfid-inventory-tracker'
+        projectName: 'RFID Inventory Tracker'
+
+    - task: DotNetCoreCLI@2
+      displayName: 'Build for Analysis'
+      inputs:
+        command: 'build'
+        projects: '**/*.csproj'
+        arguments: '--configuration $(buildConfiguration)'
+
+    - task: SonarQubeAnalyze@5
+      displayName: 'Run SonarQube Analysis'
+
+    - task: SonarQubePublish@5
+      displayName: 'Publish SonarQube Results'
+
+- stage: DeployToStaging
+  displayName: 'Deploy to Staging'
+  dependsOn: [Build, SecurityScan]
+  condition: and(succeeded(), eq(variables['Build.SourceBranch'], 'refs/heads/develop'))
+  jobs:
+  - deployment: DeployStaging
+    displayName: 'Deploy to Staging Environment'
+    environment: 'staging'
+    strategy:
+      runOnce:
+        deploy:
+          steps:
+          - task: AzureWebApp@1
+            displayName: 'Deploy to Azure Web App (Staging)'
+            inputs:
+              azureSubscription: $(azureSubscription)
+              appType: 'webAppLinux'
+              appName: '$(webAppName)-staging'
+              package: '$(Pipeline.Workspace)/webapp/**/*.zip'
+
+          - task: SqlAzureDacpacDeployment@1
+            displayName: 'Deploy Database Schema (Staging)'
+            inputs:
+              azureSubscription: $(azureSubscription)
+              ServerName: '$(stagingSqlServer)'
+              DatabaseName: '$(stagingDatabase)'
+              SqlUsername: '$(stagingSqlUsername)'
+              SqlPassword: '$(stagingSqlPassword)'
+              deployType: 'DacpacTask'
+              DacpacFile: '$(Pipeline.Workspace)/webapp/**/InventoryTracker.Database.dacpac'
+
+- stage: DeployToProduction
+  displayName: 'Deploy to Production'
+  dependsOn: [Build, SecurityScan]
+  condition: and(succeeded(), eq(variables['Build.SourceBranch'], 'refs/heads/main'))
+  jobs:
+  - deployment: DeployProduction
+    displayName: 'Deploy to Production Environment'
+    environment: 'production'
+    strategy:
+      runOnce:
+        deploy:
+          steps:
+          - task: AzureWebApp@1
+            displayName: 'Deploy to Azure Web App (Production)'
+            inputs:
+              azureSubscription: $(azureSubscription)
+              appType: 'webAppLinux'
+              appName: '$(webAppName)'
+              package: '$(Pipeline.Workspace)/webapp/**/*.zip'
+
+          - task: SqlAzureDacpacDeployment@1
+            displayName: 'Deploy Database Schema (Production)'
+            inputs:
+              azureSubscription: $(azureSubscription)
+              ServerName: '$(productionSqlServer)'
+              DatabaseName: '$(productionDatabase)'
+              SqlUsername: '$(productionSqlUsername)'
+              SqlPassword: '$(productionSqlPassword)'
+              deployType: 'DacpacTask'
+              DacpacFile: '$(Pipeline.Workspace)/webapp/**/InventoryTracker.Database.dacpac'
+
+- stage: PostDeploymentTests
+  displayName: 'Post-Deployment Testing'
+  dependsOn: [DeployToStaging, DeployToProduction]
+  condition: always()
+  jobs:
+  - job: IntegrationTests
+    displayName: 'Run Integration Tests'
+    steps:
+    - task: DotNetCoreCLI@2
+      displayName: 'Run Integration Tests'
+      inputs:
+        command: 'test'
+        projects: '**/*IntegrationTests.csproj'
+        arguments: '--configuration $(buildConfiguration) --logger trx --results-directory $(Agent.TempDirectory)'
+
+    - task: PublishTestResults@2
+      displayName: 'Publish Integration Test Results'
+      inputs:
+        testResultsFormat: 'VSTest'
+        testResultsFiles: '$(Agent.TempDirectory)/**/*.trx'
+        mergeTestResults: true
