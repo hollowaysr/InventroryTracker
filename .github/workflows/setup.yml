@@ -72,11 +72,10 @@ jobs:
         creds: ${{ secrets.AZURE_CREDENTIALS_STAGING }}
         
     - name: 🏗️ Create Terraform Backend Resources
-      run: |
-        echo "Creating Terraform state storage..."
+      run: |        echo "Creating Terraform state storage..."
         
         # Variables
-        LOCATION="East US"
+        LOCATION="West US 2"
         RESOURCE_GROUP="tfstate-rg"
         STORAGE_ACCOUNT="tfstate$(date +%s | tail -c 6)"
         CONTAINER_NAME="tfstate"

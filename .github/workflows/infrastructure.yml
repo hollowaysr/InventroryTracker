@@ -99,12 +99,11 @@ jobs:
           -backend-config="container_name=tfstate" \
           -backend-config="key=rfid-inventory-tracker-staging.terraform.tfstate"
       working-directory: ${{ env.TF_WORKING_DIR }}
-      
-    - name: 📋 Create terraform.tfvars
+        - name: 📋 Create terraform.tfvars
       run: |
         cat > terraform.tfvars << EOF
         environment = "staging"
-        location = "East US"
+        location = "West US 2"
         app_name = "rfid-inventory-tracker"
         sql_admin_username = "${{ secrets.SQL_ADMIN_USERNAME }}"
         sql_admin_password = "${{ secrets.SQL_ADMIN_PASSWORD }}"
@@ -234,12 +233,11 @@ jobs:
           -backend-config="container_name=tfstate" \
           -backend-config="key=rfid-inventory-tracker-production.terraform.tfstate"
       working-directory: ${{ env.TF_WORKING_DIR }}
-      
-    - name: 📋 Create terraform.tfvars
+        - name: 📋 Create terraform.tfvars
       run: |
         cat > terraform.tfvars << EOF
         environment = "prod"
-        location = "East US"
+        location = "West US 2"
         app_name = "rfid-inventory-tracker"
         sql_admin_username = "${{ secrets.SQL_ADMIN_USERNAME }}"
         sql_admin_password = "${{ secrets.SQL_ADMIN_PASSWORD }}"
@@ -381,10 +379,9 @@ jobs:
         if [ "$ENV_NAME" = "production" ]; then
           ENV_NAME="prod"
         fi
-        
-        cat > terraform.tfvars << EOF
+          cat > terraform.tfvars << EOF
         environment = "$ENV_NAME"
-        location = "East US"
+        location = "West US 2"
         app_name = "rfid-inventory-tracker"
         sql_admin_username = "${{ secrets.SQL_ADMIN_USERNAME }}"
         sql_admin_password = "${{ secrets.SQL_ADMIN_PASSWORD }}"

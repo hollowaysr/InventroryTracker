@@ -195,7 +195,7 @@ terraform init `
 # Create terraform.tfvars
 @"
 environment = "staging"
-location = "East US"
+location = "West US 2"
 app_name = "rfid-inventory-tracker"
 testapps_db_server = "heccdbs.database.windows.net"
 testapps_db_name = "TestApps"

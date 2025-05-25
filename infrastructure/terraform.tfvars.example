@@ -3,7 +3,7 @@
 
 # Environment configuration
 environment = "staging"  # or "prod"
-location    = "East US"
+location    = "West US 2"
 app_name    = "rfid-inventory-tracker"
 
 # TestApps Database Configuration (existing database)

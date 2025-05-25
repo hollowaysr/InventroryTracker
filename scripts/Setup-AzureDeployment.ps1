@@ -82,15 +82,13 @@ Write-Host "Checking if Terraform backend exists..." -ForegroundColor White
 $rgExists = az group exists --name $tfResourceGroup
 if ($rgExists -eq "false") {
     Write-Host "Creating Terraform backend resources..." -ForegroundColor White
+      # Create resource group
+    az group create --name $tfResourceGroup --location "West US 2"
     
-    # Create resource group
-    az group create --name $tfResourceGroup --location "East US"
-    
-    # Create storage account
-    az storage account create `
+    # Create storage account    az storage account create `
         --name $tfStorageAccount `
         --resource-group $tfResourceGroup `
-        --location "East US" `
+        --location "West US 2" `
         --sku Standard_LRS `
         --encryption-services blob
     
@@ -153,7 +151,7 @@ $tfVarsPath = "infrastructure/terraform.tfvars"
 $tfVarsContent = @"
 # Terraform variables for $Environment environment
 environment = "$Environment"
-location = "East US"
+location = "West US 2"
 app_name = "rfid-inventory-tracker"
 
 # TestApps Database Configuration
