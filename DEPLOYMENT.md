@@ -80,10 +80,10 @@ terraform apply
 az login
 
 # Create resource group
-az group create --name "rg-rfid-tracker" --location "East US"
+az group create --name "rg-rfid-tracker" --location "West US 2"
 
 # Create SQL Server and Database
-az sql server create --name "sql-rfid-tracker" --resource-group "rg-rfid-tracker" --location "East US" --admin-user "sqladmin" --admin-password "YourPassword123!"
+az sql server create --name "sql-rfid-tracker" --resource-group "rg-rfid-tracker" --location "West US 2" --admin-user "sqladmin" --admin-password "YourPassword123!"
 
 az sql db create --name "rfid-inventory-db" --server "sql-rfid-tracker" --resource-group "rg-rfid-tracker" --service-objective "S0"
 
