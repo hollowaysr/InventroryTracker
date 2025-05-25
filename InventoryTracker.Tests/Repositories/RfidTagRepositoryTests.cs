@@ -82,13 +82,11 @@ public class RfidTagRepositoryTests : IDisposable
         result!.Rfid.Should().Be("TAG002");
         result.Name.Should().Be("Test Tag");
         result.Description.Should().Be("Test Description");
-    }
-
-    [Fact]
+    }    [Fact]
     public async Task GetByIdAsync_WithNonExistingId_ShouldReturnNull()
     {
         // Act
-        var result = await _repository.GetByIdAsync(999);
+        var result = await _repository.GetByIdAsync(Guid.NewGuid());
 
         // Assert
         result.Should().BeNull();

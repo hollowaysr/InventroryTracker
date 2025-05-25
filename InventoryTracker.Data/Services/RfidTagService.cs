@@ -24,15 +24,13 @@ namespace InventoryTracker.Data.Services
         {
             var rfidTags = await _rfidTagRepository.GetAllAsync();
             return rfidTags.Select(MapToDto);
-        }
-
-        public async Task<IEnumerable<RfidTagDto>> GetByListIdAsync(int listId)
+        }        public async Task<IEnumerable<RfidTagDto>> GetByListIdAsync(Guid listId)
         {
             var rfidTags = await _rfidTagRepository.GetByListIdAsync(listId);
             return rfidTags.Select(MapToDto);
         }
 
-        public async Task<RfidTagDto?> GetByIdAsync(int id)
+        public async Task<RfidTagDto?> GetByIdAsync(Guid id)
         {
             var rfidTag = await _rfidTagRepository.GetByIdAsync(id);
             return rfidTag != null ? MapToDto(rfidTag) : null;
@@ -111,9 +109,7 @@ namespace InventoryTracker.Data.Services
             var tagIds = createdRfidTags.Select(t => t.Id);
             var reloadedTags = await _rfidTagRepository.GetByIdsAsync(tagIds);
             return reloadedTags.Select(MapToDto);
-        }
-
-        public async Task<RfidTagDto> UpdateAsync(int id, UpdateRfidTagDto updateDto)
+        }        public async Task<RfidTagDto> UpdateAsync(Guid id, UpdateRfidTagDto updateDto)
         {
             var existingRfidTag = await _rfidTagRepository.GetByIdAsync(id);
             if (existingRfidTag == null)
@@ -140,7 +136,7 @@ namespace InventoryTracker.Data.Services
             return MapToDto(reloadedTag!);
         }
 
-        public async Task<bool> DeleteAsync(int id)
+        public async Task<bool> DeleteAsync(Guid id)
         {
             if (!await _rfidTagRepository.ExistsAsync(id))
             {
@@ -150,7 +146,7 @@ namespace InventoryTracker.Data.Services
             return await _rfidTagRepository.DeleteAsync(id);
         }
 
-        public async Task<bool> DeleteBulkAsync(IEnumerable<int> ids)
+        public async Task<bool> DeleteBulkAsync(IEnumerable<Guid> ids)
         {
             var idList = ids.ToList();
             if (!idList.Any())
@@ -203,9 +199,7 @@ namespace InventoryTracker.Data.Services
             }
 
             return resultTags.Select(MapToDto);
-        }
-
-        public async Task<bool> ExistsAsync(int id)
+        }        public async Task<bool> ExistsAsync(Guid id)
         {
             return await _rfidTagRepository.ExistsAsync(id);
         }
@@ -314,11 +308,10 @@ namespace InventoryTracker.Data.Services
         private static byte[] ExportToCsv(IEnumerable<RfidTag> tags, CustomerList customerList, bool includeMetadata)
         {
             var csv = new System.Text.StringBuilder();
-            
-            // Header
+              // Header
             if (includeMetadata)
             {
-                csv.AppendLine("RFID,Name,Description,Color,Size,Created,Updated");
+                csv.AppendLine("RFID,Name,Description,Color,Size");
             }
             else
             {
@@ -328,13 +321,13 @@ namespace InventoryTracker.Data.Services
             // Data
             foreach (var tag in tags)
             {
-                if (includeMetadata)
-                {
-                    csv.AppendLine($"\"{tag.Rfid}\",\"{tag.Name}\",\"{tag.Description ?? ""}\",\"{tag.Color ?? ""}\",\"{tag.Size ?? ""}\",\"{tag.CreatedAt:yyyy-MM-dd HH:mm:ss}\",\"{tag.UpdatedAt:yyyy-MM-dd HH:mm:ss}\"");
+                if (includeMetadata)                // Note: Timestamp fields removed for TestApps database compatibility                {
+                    csv.AppendLine($"\"{tag.Rfid}\",\"{tag.Name}\",\"{tag.Description ?? ""}\",\"{tag.Color ?? ""}\",\"{tag.Size ?? ""}\"");
                 }
                 else
                 {
                     csv.AppendLine($"\"{tag.Rfid}\"");
+                }
                 }
             }
             
@@ -349,15 +342,13 @@ namespace InventoryTracker.Data.Services
             // Header row
             int col = 1;
             worksheet.Cells[1, col++].Value = "RFID";
-            
-            if (includeMetadata)
+              if (includeMetadata)
             {
                 worksheet.Cells[1, col++].Value = "Name";
                 worksheet.Cells[1, col++].Value = "Description";
                 worksheet.Cells[1, col++].Value = "Color";
                 worksheet.Cells[1, col++].Value = "Size";
-                worksheet.Cells[1, col++].Value = "Created";
-                worksheet.Cells[1, col++].Value = "Updated";
+                // Note: Timestamp fields removed for TestApps database compatibility
             }
             
             // Format header
@@ -378,9 +369,7 @@ namespace InventoryTracker.Data.Services
                     worksheet.Cells[row, col++].Value = tag.Name;
                     worksheet.Cells[row, col++].Value = tag.Description;
                     worksheet.Cells[row, col++].Value = tag.Color;
-                    worksheet.Cells[row, col++].Value = tag.Size;
-                    worksheet.Cells[row, col++].Value = tag.CreatedAt;
-                    worksheet.Cells[row, col++].Value = tag.UpdatedAt;
+                    worksheet.Cells[row, col++].Value = tag.Size;                    // Note: Timestamp fields removed for TestApps database compatibility
                 }
                 
                 row++;
@@ -405,17 +394,15 @@ namespace InventoryTracker.Data.Services
                     customerList.Name,
                     customerList.Description,
                     customerList.SystemRef
-                },
-                Tags = tags.Select(tag => includeMetadata ? 
+                },                Tags = tags.Select(tag => includeMetadata ? 
                     new
                     {
                         tag.Rfid,
                         tag.Name,
                         tag.Description,
                         tag.Color,
-                        tag.Size,
-                        tag.CreatedAt,
-                        tag.UpdatedAt
+                        tag.Size
+                        // Note: Timestamp fields removed for TestApps database compatibility
                     } :
                     new { tag.Rfid }).ToList(),
                 ExportedAt = DateTime.UtcNow
@@ -452,9 +439,7 @@ namespace InventoryTracker.Data.Services
                     xml.AppendLine($"      <Name><![CDATA[{tag.Name}]]></Name>");
                     xml.AppendLine($"      <Description><![CDATA[{tag.Description ?? ""}]]></Description>");
                     xml.AppendLine($"      <Color><![CDATA[{tag.Color ?? ""}]]></Color>");
-                    xml.AppendLine($"      <Size><![CDATA[{tag.Size ?? ""}]]></Size>");
-                    xml.AppendLine($"      <CreatedAt>{tag.CreatedAt:yyyy-MM-ddTHH:mm:ss}</CreatedAt>");
-                    xml.AppendLine($"      <UpdatedAt>{tag.UpdatedAt:yyyy-MM-ddTHH:mm:ss}</UpdatedAt>");
+                    xml.AppendLine($"      <Size><![CDATA[{tag.Size ?? ""}]]></Size>");                // Note: Timestamp fields removed for TestApps database compatibility
                 }
                 
                 xml.AppendLine("    </Tag>");
@@ -465,9 +450,7 @@ namespace InventoryTracker.Data.Services
             xml.AppendLine("</RfidExport>");
             
             return System.Text.Encoding.UTF8.GetBytes(xml.ToString());
-        }
-
-        private static RfidTagDto MapToDto(RfidTag rfidTag)
+        }        private static RfidTagDto MapToDto(RfidTag rfidTag)
         {
             return new RfidTagDto
             {
@@ -478,8 +461,6 @@ namespace InventoryTracker.Data.Services
                 Description = rfidTag.Description,
                 Color = rfidTag.Color,
                 Size = rfidTag.Size,
-                CreatedAt = rfidTag.CreatedAt,
-                UpdatedAt = rfidTag.UpdatedAt,
                 CustomerListName = rfidTag.CustomerList?.Name ?? string.Empty
             };
         }

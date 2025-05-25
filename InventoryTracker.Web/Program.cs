@@ -66,9 +66,32 @@ builder.Services.AddSwaggerGen(c =>
 // Add Application Insights telemetry (Azure best practice)
 builder.Services.AddApplicationInsightsTelemetry();
 
-// Configure Entity Framework
+// Configure Entity Framework with environment variable substitution
+var connectionString = builder.Configuration.GetConnectionString("DefaultConnection");
+if (!string.IsNullOrEmpty(connectionString) && connectionString.Contains("${MSSQL_PASSWORD}"))
+{
+    var password = Environment.GetEnvironmentVariable("MSSQL_PASSWORD");
+    if (!string.IsNullOrEmpty(password))
+    {
+        connectionString = connectionString.Replace("${MSSQL_PASSWORD}", password);
+    }
+    else
+    {
+        // For development, try to read from user secrets or configuration
+        var configPassword = builder.Configuration["DatabasePassword"];
+        if (!string.IsNullOrEmpty(configPassword))
+        {
+            connectionString = connectionString.Replace("${MSSQL_PASSWORD}", configPassword);
+        }
+        else
+        {
+            throw new InvalidOperationException("Database password not found. Set MSSQL_PASSWORD environment variable or DatabasePassword configuration value.");
+        }
+    }
+}
+
 builder.Services.AddDbContext<InventoryTrackerDbContext>(options =>
-    options.UseSqlServer(builder.Configuration.GetConnectionString("DefaultConnection")));
+    options.UseSqlServer(connectionString));
 
 // Add health checks (Azure best practice)
 builder.Services.AddHealthChecks()

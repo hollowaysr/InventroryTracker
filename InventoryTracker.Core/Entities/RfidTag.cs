@@ -7,34 +7,31 @@ namespace InventoryTracker.Core.Entities
     /// Represents an RFID tag with associated metadata
     /// </summary>
     public class RfidTag
-    {
-        [Key]
+    {        [Key]
         [DatabaseGenerated(DatabaseGeneratedOption.Identity)]
-        public int Id { get; set; }
+        public Guid Id { get; set; }
 
         [Required]
         [MaxLength(50)]
-        [Column("RFID")]
+        [Column("RFID", TypeName = "varchar")]
         public string Rfid { get; set; } = string.Empty;
 
         [ForeignKey(nameof(CustomerList))]
-        public int ListId { get; set; }
+        public Guid? ListId { get; set; }
 
-        [Required]
-        [MaxLength(100)]
-        public string Name { get; set; } = string.Empty;
+        [MaxLength(50)]
+        [Column(TypeName = "varchar")]
+        public string? Name { get; set; }
 
-        [MaxLength(500)]
+        [Column(TypeName = "varchar(max)")]
         public string? Description { get; set; }
 
         [MaxLength(50)]
         public string? Color { get; set; }
 
         [MaxLength(50)]
+        [Column(TypeName = "varchar")]
         public string? Size { get; set; }
-
-        public DateTime CreatedAt { get; set; } = DateTime.UtcNow;
-        public DateTime UpdatedAt { get; set; } = DateTime.UtcNow;
 
         // Navigation properties
         public virtual CustomerList? CustomerList { get; set; }

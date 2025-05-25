@@ -24,133 +24,65 @@ namespace InventoryTracker.Data.Migrations
 
             modelBuilder.Entity("InventoryTracker.Core.Entities.CustomerList", b =>
                 {
-                    b.Property<int>("Id")
+                    b.Property<Guid>("Id")
                         .ValueGeneratedOnAdd()
-                        .HasColumnType("int");
-
-                    SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("Id"));
-
-                    b.Property<DateTime>("CreatedAt")
-                        .ValueGeneratedOnAdd()
-                        .HasColumnType("datetime2")
-                        .HasDefaultValueSql("GETUTCDATE()");
+                        .HasColumnType("uniqueidentifier");
 
                     b.Property<string>("Description")
-                        .HasMaxLength(500)
-                        .HasColumnType("nvarchar(500)");
-
-                    b.Property<long?>("LedgerEndSequenceNumber")
-                        .HasColumnType("bigint")
-                        .HasColumnName("ledger_end_sequence_number");
-
-                    b.Property<long?>("LedgerEndTransactionId")
-                        .HasColumnType("bigint")
-                        .HasColumnName("ledger_end_transaction_id");
-
-                    b.Property<long>("LedgerStartSequenceNumber")
-                        .HasColumnType("bigint")
-                        .HasColumnName("ledger_start_sequence_number");
-
-                    b.Property<long>("LedgerStartTransactionId")
-                        .HasColumnType("bigint")
-                        .HasColumnName("ledger_start_transaction_id");
+                        .HasMaxLength(255)
+                        .HasColumnType("varchar(255)");
 
                     b.Property<string>("Name")
                         .IsRequired()
                         .HasMaxLength(100)
-                        .HasColumnType("nvarchar(100)");
+                        .HasColumnType("varchar(100)");
 
                     b.Property<string>("SystemRef")
                         .HasMaxLength(50)
-                        .HasColumnType("nvarchar(50)");
-
-                    b.Property<DateTime?>("UpdatedAt")
-                        .ValueGeneratedOnAdd()
-                        .HasColumnType("datetime2")
-                        .HasDefaultValueSql("GETUTCDATE()");
+                        .HasColumnType("varchar(50)");
 
                     b.HasKey("Id");
-
-                    b.HasIndex("Name")
-                        .HasDatabaseName("IX_List_Name");
-
-                    b.HasIndex("SystemRef")
-                        .HasDatabaseName("IX_List_SystemRef");
 
                     b.ToTable("List", (string)null);
                 });
 
             modelBuilder.Entity("InventoryTracker.Core.Entities.RfidTag", b =>
                 {
-                    b.Property<int>("Id")
+                    b.Property<Guid>("Id")
                         .ValueGeneratedOnAdd()
-                        .HasColumnType("int");
-
-                    SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("Id"));
+                        .HasColumnType("uniqueidentifier");
 
                     b.Property<string>("Color")
                         .HasMaxLength(50)
-                        .HasColumnType("nvarchar(50)");
-
-                    b.Property<DateTime>("CreatedAt")
-                        .ValueGeneratedOnAdd()
-                        .HasColumnType("datetime2")
-                        .HasDefaultValueSql("GETUTCDATE()");
+                        .HasColumnType("varchar(50)");
 
                     b.Property<string>("Description")
-                        .HasMaxLength(500)
-                        .HasColumnType("nvarchar(500)");
+                        .HasMaxLength(255)
+                        .HasColumnType("varchar(255)");
 
-                    b.Property<long?>("LedgerEndSequenceNumber")
-                        .HasColumnType("bigint")
-                        .HasColumnName("ledger_end_sequence_number");
-
-                    b.Property<long?>("LedgerEndTransactionId")
-                        .HasColumnType("bigint")
-                        .HasColumnName("ledger_end_transaction_id");
-
-                    b.Property<long>("LedgerStartSequenceNumber")
-                        .HasColumnType("bigint")
-                        .HasColumnName("ledger_start_sequence_number");
-
-                    b.Property<long>("LedgerStartTransactionId")
-                        .HasColumnType("bigint")
-                        .HasColumnName("ledger_start_transaction_id");
-
-                    b.Property<int>("ListId")
-                        .HasColumnType("int");
+                    b.Property<Guid>("ListId")
+                        .HasColumnType("uniqueidentifier");
 
                     b.Property<string>("Name")
-                        .IsRequired()
                         .HasMaxLength(100)
-                        .HasColumnType("nvarchar(100)");
+                        .HasColumnType("varchar(100)");
 
                     b.Property<string>("Rfid")
                         .IsRequired()
                         .HasMaxLength(50)
-                        .HasColumnType("nvarchar(50)")
+                        .HasColumnType("varchar(50)")
                         .HasColumnName("RFID");
 
                     b.Property<string>("Size")
                         .HasMaxLength(50)
-                        .HasColumnType("nvarchar(50)");
-
-                    b.Property<DateTime>("UpdatedAt")
-                        .ValueGeneratedOnAdd()
-                        .HasColumnType("datetime2")
-                        .HasDefaultValueSql("GETUTCDATE()");
+                        .HasColumnType("varchar(50)");
 
                     b.HasKey("Id");
 
-                    b.HasIndex("ListId")
-                        .HasDatabaseName("IX_RFID_ListId");
-
-                    b.HasIndex("Name")
-                        .HasDatabaseName("IX_RFID_Name");
+                    b.HasIndex("ListId");
 
                     b.HasIndex("Rfid")
-                        .IsUnique()
-                        .HasDatabaseName("IX_RFID_Rfid");
+                        .IsUnique();
 
                     b.ToTable("RFID", (string)null);
                 });

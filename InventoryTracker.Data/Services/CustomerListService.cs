@@ -18,15 +18,13 @@ namespace InventoryTracker.Data.Services
         {
             var customerLists = await _customerListRepository.GetAllAsync();
             return customerLists.Select(MapToDto);
-        }
-
-        public async Task<CustomerListDto?> GetByIdAsync(int id)
+        }        public async Task<CustomerListDto?> GetByIdAsync(Guid id)
         {
             var customerList = await _customerListRepository.GetByIdAsync(id);
             return customerList != null ? MapToDto(customerList) : null;
         }
 
-        public async Task<CustomerListDto?> GetByIdWithTagsAsync(int id)
+        public async Task<CustomerListDto?> GetByIdWithTagsAsync(Guid id)
         {
             var customerList = await _customerListRepository.GetByIdWithTagsAsync(id);
             return customerList != null ? MapToDtoWithTags(customerList) : null;
@@ -49,9 +47,7 @@ namespace InventoryTracker.Data.Services
 
             var createdCustomerList = await _customerListRepository.CreateAsync(customerList);
             return MapToDto(createdCustomerList);
-        }
-
-        public async Task<CustomerListDto> UpdateAsync(int id, UpdateCustomerListDto updateDto)
+        }        public async Task<CustomerListDto> UpdateAsync(Guid id, UpdateCustomerListDto updateDto)
         {
             var existingCustomerList = await _customerListRepository.GetByIdAsync(id);
             if (existingCustomerList == null)
@@ -73,7 +69,7 @@ namespace InventoryTracker.Data.Services
             return MapToDto(updatedCustomerList);
         }
 
-        public async Task<bool> DeleteAsync(int id)
+        public async Task<bool> DeleteAsync(Guid id)
         {
             if (!await _customerListRepository.ExistsAsync(id))
             {
@@ -83,12 +79,10 @@ namespace InventoryTracker.Data.Services
             return await _customerListRepository.DeleteAsync(id);
         }
 
-        public async Task<bool> ExistsAsync(int id)
+        public async Task<bool> ExistsAsync(Guid id)
         {
             return await _customerListRepository.ExistsAsync(id);
-        }
-
-        private static CustomerListDto MapToDto(CustomerList customerList)
+        }        private static CustomerListDto MapToDto(CustomerList customerList)
         {
             return new CustomerListDto
             {
@@ -96,8 +90,6 @@ namespace InventoryTracker.Data.Services
                 Name = customerList.Name,
                 Description = customerList.Description,
                 SystemRef = customerList.SystemRef,
-                CreatedAt = customerList.CreatedAt,
-                UpdatedAt = customerList.UpdatedAt,
                 TagCount = customerList.RfidTags?.Count ?? 0
             };
         }

@@ -17,6 +17,7 @@ public class RfidTagsControllerIntegrationTests : IClassFixture<WebApplicationFa
     private readonly WebApplicationFactory<Program> _factory;
     private readonly HttpClient _client;
     private readonly InventoryTrackerDbContext _context;
+    private readonly Guid _testCustomerListId = Guid.NewGuid();
 
     public RfidTagsControllerIntegrationTests(WebApplicationFactory<Program> factory)
     {
@@ -44,13 +45,11 @@ public class RfidTagsControllerIntegrationTests : IClassFixture<WebApplicationFa
         _context = scope.ServiceProvider.GetRequiredService<InventoryTrackerDbContext>();
         
         SeedTestData();
-    }
-
-    private void SeedTestData()
+    }    private void SeedTestData()
     {
         var customerList = new CustomerList
         {
-            Id = 1,
+            Id = _testCustomerListId,
             Name = "Test Customer List",
             Description = "Test Description",
             SystemRef = "SYS001"
@@ -60,8 +59,8 @@ public class RfidTagsControllerIntegrationTests : IClassFixture<WebApplicationFa
 
         var rfidTags = new List<RfidTag>
         {
-            new RfidTag { Id = 1, Rfid = "TAG001", Name = "Tag 1", ListId = 1, Description = "Description 1" },
-            new RfidTag { Id = 2, Rfid = "TAG002", Name = "Tag 2", ListId = 1, Description = "Description 2" }
+            new RfidTag { Id = Guid.NewGuid(), Rfid = "TAG001", Name = "Tag 1", ListId = _testCustomerListId, Description = "Description 1" },
+            new RfidTag { Id = Guid.NewGuid(), Rfid = "TAG002", Name = "Tag 2", ListId = _testCustomerListId, Description = "Description 2" }
         };
 
         _context.RfidTags.AddRange(rfidTags);
@@ -70,11 +69,10 @@ public class RfidTagsControllerIntegrationTests : IClassFixture<WebApplicationFa
 
     [Fact]
     public async Task BulkCreateFromCsv_WithValidData_ShouldReturn201()
-    {
-        // Arrange
+    {        // Arrange
         var csvDto = new BulkCreateFromCsvDto
         {
-            ListId = 1,
+            ListId = _testCustomerListId,
             CommaSeparatedRfids = "TAG101, TAG102, TAG103",
             DefaultName = "Bulk Tag",
             DefaultDescription = "Imported via CSV",
@@ -97,11 +95,10 @@ public class RfidTagsControllerIntegrationTests : IClassFixture<WebApplicationFa
 
     [Fact]
     public async Task BulkCreateFromCsv_WithDuplicateRfids_ShouldReturn409()
-    {
-        // Arrange
+    {        // Arrange
         var csvDto = new BulkCreateFromCsvDto
         {
-            ListId = 1,
+            ListId = _testCustomerListId,
             CommaSeparatedRfids = "TAG001, TAG104, TAG105" // TAG001 already exists
         };
 
@@ -114,11 +111,10 @@ public class RfidTagsControllerIntegrationTests : IClassFixture<WebApplicationFa
 
     [Fact]
     public async Task BulkCreateFromCsv_WithInvalidListId_ShouldReturn400()
-    {
-        // Arrange
+    {        // Arrange
         var csvDto = new BulkCreateFromCsvDto
         {
-            ListId = 999, // Non-existent list
+            ListId = Guid.NewGuid(), // Non-existent list
             CommaSeparatedRfids = "TAG201, TAG202"
         };
 
@@ -131,11 +127,10 @@ public class RfidTagsControllerIntegrationTests : IClassFixture<WebApplicationFa
 
     [Fact]
     public async Task BulkCreateFromCsv_WithEmptyRfids_ShouldReturn400()
-    {
-        // Arrange
+    {        // Arrange
         var csvDto = new BulkCreateFromCsvDto
         {
-            ListId = 1,
+            ListId = _testCustomerListId,
             CommaSeparatedRfids = "   ,   ,   " // Only whitespace and commas
         };
 
@@ -222,10 +217,9 @@ public class RfidTagsControllerIntegrationTests : IClassFixture<WebApplicationFa
     [Fact]
     public async Task ExportTags_WithInvalidListId_ShouldReturn400()
     {
-        // Arrange
-        var exportDto = new ExportRfidTagsDto
+        // Arrange        var exportDto = new ExportRfidTagsDto
         {
-            ListId = 999,
+            ListId = Guid.NewGuid(),
             Format = ExportFormat.Csv
         };
 

@@ -11,7 +11,6 @@ public class RfidTagServiceTests
 {
     private readonly Mock<IRfidTagRepository> _mockRepository;
     private readonly Mock<ICustomerListRepository> _mockCustomerListRepository;
-    private readonly Mock<IEmailService> _mockEmailService;
     private readonly RfidTagService _service;
     private readonly Guid _testListId = Guid.Parse("11111111-1111-1111-1111-111111111111");
     private readonly Guid _testTagId1 = Guid.Parse("22222222-2222-2222-2222-222222222222");
@@ -21,11 +20,11 @@ public class RfidTagServiceTests
     {
         _mockRepository = new Mock<IRfidTagRepository>();
         _mockCustomerListRepository = new Mock<ICustomerListRepository>();
-        _mockEmailService = new Mock<IEmailService>();
-        _service = new RfidTagService(_mockRepository.Object, _mockCustomerListRepository.Object, _mockEmailService.Object);
+        _service = new RfidTagService(_mockRepository.Object, _mockCustomerListRepository.Object);
     }
 
-    [Fact]    public async Task GetAllAsync_ShouldReturnAllRfidTags()
+    [Fact]
+    public async Task GetAllAsync_ShouldReturnAllRfidTags()
     {
         // Arrange
         var rfidTags = new List<RfidTag>

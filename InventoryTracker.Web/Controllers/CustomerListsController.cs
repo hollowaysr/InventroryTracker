@@ -33,13 +33,11 @@ namespace InventoryTracker.Web.Controllers
                 _logger.LogError(ex, "Error retrieving customer lists");
                 return StatusCode(500, "An error occurred while retrieving customer lists");
             }
-        }
-
-        /// <summary>
+        }        /// <summary>
         /// Get a specific customer list by ID (FR002)
         /// </summary>
         [HttpGet("{id}")]
-        public async Task<ActionResult<CustomerListDto>> GetById(int id)
+        public async Task<ActionResult<CustomerListDto>> GetById(Guid id)
         {
             try
             {
@@ -55,13 +53,11 @@ namespace InventoryTracker.Web.Controllers
                 _logger.LogError(ex, "Error retrieving customer list with ID {Id}", id);
                 return StatusCode(500, "An error occurred while retrieving the customer list");
             }
-        }
-
-        /// <summary>
+        }        /// <summary>
         /// Get a specific customer list with its RFID tags (FR002)
         /// </summary>
         [HttpGet("{id}/with-tags")]
-        public async Task<ActionResult<CustomerListDto>> GetByIdWithTags(int id)
+        public async Task<ActionResult<CustomerListDto>> GetByIdWithTags(Guid id)
         {
             try
             {
@@ -105,13 +101,11 @@ namespace InventoryTracker.Web.Controllers
                 _logger.LogError(ex, "Error creating customer list");
                 return StatusCode(500, "An error occurred while creating the customer list");
             }
-        }
-
-        /// <summary>
+        }        /// <summary>
         /// Update an existing customer list (FR004)
         /// </summary>
         [HttpPut("{id}")]
-        public async Task<ActionResult<CustomerListDto>> Update(int id, [FromBody] UpdateCustomerListDto updateDto)
+        public async Task<ActionResult<CustomerListDto>> Update(Guid id, [FromBody] UpdateCustomerListDto updateDto)
         {
             try
             {
@@ -138,13 +132,11 @@ namespace InventoryTracker.Web.Controllers
                 _logger.LogError(ex, "Error updating customer list with ID {Id}", id);
                 return StatusCode(500, "An error occurred while updating the customer list");
             }
-        }
-
-        /// <summary>
+        }        /// <summary>
         /// Delete a customer list (FR005)
         /// </summary>
         [HttpDelete("{id}")]
-        public async Task<ActionResult> Delete(int id)
+        public async Task<ActionResult> Delete(Guid id)
         {
             try
             {
