@@ -1,0 +1,402 @@
+# RFID Inventory Tracker - Infrastructure Deployment Pipeline
+name: Infrastructure Deployment
+
+on:
+  push:
+    branches: [ main, develop ]
+    paths:
+      - 'infrastructure/**'
+      - '.github/workflows/infrastructure.yml'
+  pull_request:
+    branches: [ main ]
+    paths:
+      - 'infrastructure/**'
+      - '.github/workflows/infrastructure.yml'
+  workflow_dispatch:
+    inputs:
+      environment:
+        description: 'Environment to deploy infrastructure to'
+        required: true
+        default: 'staging'
+        type: choice
+        options:
+          - staging
+          - production
+      action:
+        description: 'Terraform action to perform'
+        required: true
+        default: 'apply'
+        type: choice
+        options:
+          - plan
+          - apply
+          - destroy
+
+env:
+  TF_VERSION: '1.7.0'
+  TF_WORKING_DIR: './infrastructure'
+  ARM_USE_OIDC: true
+
+jobs:
+  terraform-validate:
+    name: Validate Terraform
+    runs-on: ubuntu-latest
+    
+    steps:
+    - name: 📥 Checkout code
+      uses: actions/checkout@v4
+      
+    - name: 🔧 Setup Terraform
+      uses: hashicorp/setup-terraform@v3
+      with:
+        terraform_version: ${{ env.TF_VERSION }}
+        
+    - name: 🔍 Terraform Format Check
+      run: terraform fmt -check -recursive
+      working-directory: ${{ env.TF_WORKING_DIR }}
+      
+    - name: ⚙️ Terraform Init
+      run: terraform init -backend=false
+      working-directory: ${{ env.TF_WORKING_DIR }}
+      
+    - name: ✅ Terraform Validate
+      run: terraform validate
+      working-directory: ${{ env.TF_WORKING_DIR }}
+      
+    - name: 🔒 Terraform Security Scan
+      uses: aquasecurity/tfsec-action@v1.0.3
+      with:
+        working_directory: ${{ env.TF_WORKING_DIR }}
+        soft_fail: true
+
+  terraform-plan-staging:
+    name: Plan Infrastructure (Staging)
+    runs-on: ubuntu-latest
+    needs: terraform-validate
+    if: github.ref == 'refs/heads/develop' || (github.event_name == 'workflow_dispatch' && github.event.inputs.environment == 'staging')
+    environment: staging-infrastructure
+    
+    steps:
+    - name: 📥 Checkout code
+      uses: actions/checkout@v4
+      
+    - name: 🔧 Setup Terraform
+      uses: hashicorp/setup-terraform@v3
+      with:
+        terraform_version: ${{ env.TF_VERSION }}
+        terraform_wrapper: false
+        
+    - name: 🔐 Azure Login
+      uses: azure/login@v2
+      with:
+        creds: ${{ secrets.AZURE_CREDENTIALS_STAGING }}
+        
+    - name: ⚙️ Terraform Init
+      run: |
+        terraform init \
+          -backend-config="resource_group_name=${{ secrets.TF_STATE_RESOURCE_GROUP }}" \
+          -backend-config="storage_account_name=${{ secrets.TF_STATE_STORAGE_ACCOUNT }}" \
+          -backend-config="container_name=tfstate" \
+          -backend-config="key=rfid-inventory-tracker-staging.terraform.tfstate"
+      working-directory: ${{ env.TF_WORKING_DIR }}
+      
+    - name: 📋 Create terraform.tfvars
+      run: |
+        cat > terraform.tfvars << EOF
+        environment = "staging"
+        location = "East US"
+        app_name = "rfid-inventory-tracker"
+        sql_admin_username = "${{ secrets.SQL_ADMIN_USERNAME }}"
+        sql_admin_password = "${{ secrets.SQL_ADMIN_PASSWORD }}"
+        EOF
+      working-directory: ${{ env.TF_WORKING_DIR }}
+      
+    - name: 📊 Terraform Plan
+      id: plan
+      run: |
+        terraform plan -var-file="terraform.tfvars" -out=tfplan
+        terraform show -no-color tfplan > tfplan.txt
+      working-directory: ${{ env.TF_WORKING_DIR }}
+      
+    - name: 📤 Upload Terraform Plan
+      uses: actions/upload-artifact@v4
+      with:
+        name: terraform-plan-staging-${{ github.sha }}
+        path: |
+          ${{ env.TF_WORKING_DIR }}/tfplan
+          ${{ env.TF_WORKING_DIR }}/tfplan.txt
+        retention-days: 5
+        
+    - name: 💬 Comment PR with Plan
+      if: github.event_name == 'pull_request'
+      uses: actions/github-script@v7
+      with:
+        script: |
+          const fs = require('fs');
+          const planOutput = fs.readFileSync('${{ env.TF_WORKING_DIR }}/tfplan.txt', 'utf8');
+          
+          const output = `#### Terraform Plan (Staging) 📋
+          
+          \`\`\`
+          ${planOutput}
+          \`\`\`
+          
+          *Actor: @${{ github.actor }}, Action: \`${{ github.event_name }}\`*`;
+          
+          github.rest.issues.createComment({
+            issue_number: context.issue.number,
+            owner: context.repo.owner,
+            repo: context.repo.repo,
+            body: output
+          });
+
+  terraform-apply-staging:
+    name: Apply Infrastructure (Staging)
+    runs-on: ubuntu-latest
+    needs: terraform-plan-staging
+    if: github.ref == 'refs/heads/develop' || (github.event_name == 'workflow_dispatch' && github.event.inputs.environment == 'staging' && github.event.inputs.action == 'apply')
+    environment: staging-infrastructure
+    
+    steps:
+    - name: 📥 Checkout code
+      uses: actions/checkout@v4
+      
+    - name: 🔧 Setup Terraform
+      uses: hashicorp/setup-terraform@v3
+      with:
+        terraform_version: ${{ env.TF_VERSION }}
+        terraform_wrapper: false
+        
+    - name: 🔐 Azure Login
+      uses: azure/login@v2
+      with:
+        creds: ${{ secrets.AZURE_CREDENTIALS_STAGING }}
+        
+    - name: 📥 Download Terraform Plan
+      uses: actions/download-artifact@v4
+      with:
+        name: terraform-plan-staging-${{ github.sha }}
+        path: ${{ env.TF_WORKING_DIR }}
+        
+    - name: ⚙️ Terraform Init
+      run: |
+        terraform init \
+          -backend-config="resource_group_name=${{ secrets.TF_STATE_RESOURCE_GROUP }}" \
+          -backend-config="storage_account_name=${{ secrets.TF_STATE_STORAGE_ACCOUNT }}" \
+          -backend-config="container_name=tfstate" \
+          -backend-config="key=rfid-inventory-tracker-staging.terraform.tfstate"
+      working-directory: ${{ env.TF_WORKING_DIR }}
+      
+    - name: 🚀 Terraform Apply
+      run: terraform apply -auto-approve tfplan
+      working-directory: ${{ env.TF_WORKING_DIR }}
+      
+    - name: 📋 Output Infrastructure Details
+      id: output
+      run: |
+        echo "app_service_url=$(terraform output -raw app_service_url)" >> $GITHUB_OUTPUT
+        echo "sql_server_fqdn=$(terraform output -raw sql_server_fqdn)" >> $GITHUB_OUTPUT
+      working-directory: ${{ env.TF_WORKING_DIR }}
+      
+    - name: 📝 Save Infrastructure Outputs
+      run: |
+        echo "🏗️ Infrastructure deployed successfully!"
+        echo "🌐 App Service URL: ${{ steps.output.outputs.app_service_url }}"
+        echo "🗄️ SQL Server FQDN: ${{ steps.output.outputs.sql_server_fqdn }}"
+
+  terraform-plan-production:
+    name: Plan Infrastructure (Production)
+    runs-on: ubuntu-latest
+    needs: terraform-validate
+    if: github.ref == 'refs/heads/main' || (github.event_name == 'workflow_dispatch' && github.event.inputs.environment == 'production')
+    environment: production-infrastructure
+    
+    steps:
+    - name: 📥 Checkout code
+      uses: actions/checkout@v4
+      
+    - name: 🔧 Setup Terraform
+      uses: hashicorp/setup-terraform@v3
+      with:
+        terraform_version: ${{ env.TF_VERSION }}
+        terraform_wrapper: false
+        
+    - name: 🔐 Azure Login
+      uses: azure/login@v2
+      with:
+        creds: ${{ secrets.AZURE_CREDENTIALS_PRODUCTION }}
+        
+    - name: ⚙️ Terraform Init
+      run: |
+        terraform init \
+          -backend-config="resource_group_name=${{ secrets.TF_STATE_RESOURCE_GROUP }}" \
+          -backend-config="storage_account_name=${{ secrets.TF_STATE_STORAGE_ACCOUNT }}" \
+          -backend-config="container_name=tfstate" \
+          -backend-config="key=rfid-inventory-tracker-production.terraform.tfstate"
+      working-directory: ${{ env.TF_WORKING_DIR }}
+      
+    - name: 📋 Create terraform.tfvars
+      run: |
+        cat > terraform.tfvars << EOF
+        environment = "prod"
+        location = "East US"
+        app_name = "rfid-inventory-tracker"
+        sql_admin_username = "${{ secrets.SQL_ADMIN_USERNAME }}"
+        sql_admin_password = "${{ secrets.SQL_ADMIN_PASSWORD }}"
+        EOF
+      working-directory: ${{ env.TF_WORKING_DIR }}
+      
+    - name: 📊 Terraform Plan
+      id: plan
+      run: |
+        terraform plan -var-file="terraform.tfvars" -out=tfplan
+        terraform show -no-color tfplan > tfplan.txt
+      working-directory: ${{ env.TF_WORKING_DIR }}
+      
+    - name: 📤 Upload Terraform Plan
+      uses: actions/upload-artifact@v4
+      with:
+        name: terraform-plan-production-${{ github.sha }}
+        path: |
+          ${{ env.TF_WORKING_DIR }}/tfplan
+          ${{ env.TF_WORKING_DIR }}/tfplan.txt
+        retention-days: 5
+        
+    - name: 💬 Comment PR with Plan
+      if: github.event_name == 'pull_request'
+      uses: actions/github-script@v7
+      with:
+        script: |
+          const fs = require('fs');
+          const planOutput = fs.readFileSync('${{ env.TF_WORKING_DIR }}/tfplan.txt', 'utf8');
+          
+          const output = `#### Terraform Plan (Production) 📋
+          
+          \`\`\`
+          ${planOutput}
+          \`\`\`
+          
+          *Actor: @${{ github.actor }}, Action: \`${{ github.event_name }}\`*`;
+          
+          github.rest.issues.createComment({
+            issue_number: context.issue.number,
+            owner: context.repo.owner,
+            repo: context.repo.repo,
+            body: output
+          });
+
+  terraform-apply-production:
+    name: Apply Infrastructure (Production)
+    runs-on: ubuntu-latest
+    needs: terraform-plan-production
+    if: github.ref == 'refs/heads/main' || (github.event_name == 'workflow_dispatch' && github.event.inputs.environment == 'production' && github.event.inputs.action == 'apply')
+    environment: production-infrastructure
+    
+    steps:
+    - name: 📥 Checkout code
+      uses: actions/checkout@v4
+      
+    - name: 🔧 Setup Terraform
+      uses: hashicorp/setup-terraform@v3
+      with:
+        terraform_version: ${{ env.TF_VERSION }}
+        terraform_wrapper: false
+        
+    - name: 🔐 Azure Login
+      uses: azure/login@v2
+      with:
+        creds: ${{ secrets.AZURE_CREDENTIALS_PRODUCTION }}
+        
+    - name: 📥 Download Terraform Plan
+      uses: actions/download-artifact@v4
+      with:
+        name: terraform-plan-production-${{ github.sha }}
+        path: ${{ env.TF_WORKING_DIR }}
+        
+    - name: ⚙️ Terraform Init
+      run: |
+        terraform init \
+          -backend-config="resource_group_name=${{ secrets.TF_STATE_RESOURCE_GROUP }}" \
+          -backend-config="storage_account_name=${{ secrets.TF_STATE_STORAGE_ACCOUNT }}" \
+          -backend-config="container_name=tfstate" \
+          -backend-config="key=rfid-inventory-tracker-production.terraform.tfstate"
+      working-directory: ${{ env.TF_WORKING_DIR }}
+      
+    - name: 🚀 Terraform Apply
+      run: terraform apply -auto-approve tfplan
+      working-directory: ${{ env.TF_WORKING_DIR }}
+      
+    - name: 📋 Output Infrastructure Details
+      id: output
+      run: |
+        echo "app_service_url=$(terraform output -raw app_service_url)" >> $GITHUB_OUTPUT
+        echo "sql_server_fqdn=$(terraform output -raw sql_server_fqdn)" >> $GITHUB_OUTPUT
+      working-directory: ${{ env.TF_WORKING_DIR }}
+      
+    - name: 📝 Save Infrastructure Outputs
+      run: |
+        echo "🏗️ Infrastructure deployed successfully!"
+        echo "🌐 App Service URL: ${{ steps.output.outputs.app_service_url }}"
+        echo "🗄️ SQL Server FQDN: ${{ steps.output.outputs.sql_server_fqdn }}"
+        
+    - name: 🔔 Notify teams
+      if: success()
+      run: |
+        echo "✅ Production infrastructure deployment successful!"
+        echo "🌐 Application URL: ${{ steps.output.outputs.app_service_url }}"
+
+  terraform-destroy:
+    name: Destroy Infrastructure
+    runs-on: ubuntu-latest
+    if: github.event_name == 'workflow_dispatch' && github.event.inputs.action == 'destroy'
+    environment: ${{ github.event.inputs.environment }}-infrastructure-destroy
+    
+    steps:
+    - name: 📥 Checkout code
+      uses: actions/checkout@v4
+      
+    - name: 🔧 Setup Terraform
+      uses: hashicorp/setup-terraform@v3
+      with:
+        terraform_version: ${{ env.TF_VERSION }}
+        terraform_wrapper: false
+        
+    - name: 🔐 Azure Login
+      uses: azure/login@v2
+      with:
+        creds: ${{ github.event.inputs.environment == 'staging' && secrets.AZURE_CREDENTIALS_STAGING || secrets.AZURE_CREDENTIALS_PRODUCTION }}
+        
+    - name: ⚙️ Terraform Init
+      run: |
+        terraform init \
+          -backend-config="resource_group_name=${{ secrets.TF_STATE_RESOURCE_GROUP }}" \
+          -backend-config="storage_account_name=${{ secrets.TF_STATE_STORAGE_ACCOUNT }}" \
+          -backend-config="container_name=tfstate" \
+          -backend-config="key=rfid-inventory-tracker-${{ github.event.inputs.environment }}.terraform.tfstate"
+      working-directory: ${{ env.TF_WORKING_DIR }}
+      
+    - name: 📋 Create terraform.tfvars
+      run: |
+        ENV_NAME="${{ github.event.inputs.environment }}"
+        if [ "$ENV_NAME" = "production" ]; then
+          ENV_NAME="prod"
+        fi
+        
+        cat > terraform.tfvars << EOF
+        environment = "$ENV_NAME"
+        location = "East US"
+        app_name = "rfid-inventory-tracker"
+        sql_admin_username = "${{ secrets.SQL_ADMIN_USERNAME }}"
+        sql_admin_password = "${{ secrets.SQL_ADMIN_PASSWORD }}"
+        EOF
+      working-directory: ${{ env.TF_WORKING_DIR }}
+      
+    - name: 🗑️ Terraform Destroy
+      run: terraform destroy -auto-approve -var-file="terraform.tfvars"
+      working-directory: ${{ env.TF_WORKING_DIR }}
+      
+    - name: 🔔 Notify destruction
+      if: success()
+      run: |
+        echo "💥 Infrastructure destroyed successfully!"
+        echo "🌍 Environment: ${{ github.event.inputs.environment }}"

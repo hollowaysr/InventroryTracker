@@ -2,10 +2,12 @@
 # Copy this file to terraform.tfvars and fill in the actual values
 
 # Environment configuration
-environment = "dev"
+environment = "staging"  # or "prod"
 location    = "East US"
 app_name    = "rfid-inventory-tracker"
 
-# SQL Server configuration
-sql_admin_username = "sqladmin"
-sql_admin_password = "YourSecurePassword123!"
+# TestApps Database Configuration (existing database)
+testapps_db_server   = "heccdbs.database.windows.net"
+testapps_db_name     = "TestApps"
+testapps_db_username = "YOUR_TESTAPPS_USERNAME"
+testapps_db_password = "YOUR_TESTAPPS_PASSWORD"

@@ -7,7 +7,7 @@ class TestConnection
     static async Task Main(string[] args)
     {
         // Connection string to TestApps database
-        string connectionString = "Server=heccdbs.database.windows.net,1433;Database=TestApps;User ID=hecc_admin;Password=YOUR_PASSWORD;Encrypt=True;TrustServerCertificate=False;Connection Timeout=30;";
+        string connectionString = "Server=heccdbs.database.windows.net,1433;Database=TestApps;User ID=hecc_admin;Password=${MSSQL_PASSWORD};Encrypt=True;TrustServerCertificate=False;Connection Timeout=30;";
         
         Console.WriteLine("Testing connection to TestApps database...");
         Console.WriteLine($"Connection string: {connectionString.Replace("YOUR_PASSWORD", "***")}");

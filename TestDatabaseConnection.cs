@@ -9,7 +9,7 @@ namespace InventoryTracker.Test
         public static async Task Main(string[] args)
         {
             // Note: Replace YOUR_PASSWORD with actual password
-            var connectionString = "Server=heccdbs.database.windows.net,1433;Database=TestApps;User ID=hecc_admin;Password=YOUR_PASSWORD;Encrypt=True;TrustServerCertificate=False;Connection Timeout=30;MultipleActiveResultSets=true";
+            var connectionString = "Server=heccdbs.database.windows.net,1433;Database=TestApps;User ID=hecc_admin;Password=${MSSQL_PASSWORD};Encrypt=True;TrustServerCertificate=False;Connection Timeout=30;MultipleActiveResultSets=true";
             
             try
             {

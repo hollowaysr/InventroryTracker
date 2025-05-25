@@ -1,142 +1,308 @@
-name: CI/CD Pipeline
+# RFID Inventory Tracker - Application CI/CD Pipeline
+name: Application CI/CD
 
 on:
   push:
     branches: [ main, develop ]
+    paths-ignore:
+      - 'infrastructure/**'
+      - '*.md'
+      - '.gitignore'
   pull_request:
     branches: [ main ]
+    paths-ignore:
+      - 'infrastructure/**'
+      - '*.md'
+      - '.gitignore'
+  workflow_dispatch:
+    inputs:
+      environment:
+        description: 'Environment to deploy to'
+        required: true
+        default: 'staging'
+        type: choice
+        options:
+          - staging
+          - production
 
 env:
-  AZURE_WEBAPP_NAME: 'rfid-inventory-tracker'
-  DOTNET_VERSION: '8.0.x'
+  DOTNET_VERSION: '9.0.x'
   WORKING_DIRECTORY: '.'
+  AZURE_RESOURCE_GROUP: 'rg-rfid-inventory-tracker'
 
 jobs:
   build-and-test:
+    name: Build and Test
     runs-on: ubuntu-latest
     
     steps:
-    - name: Checkout code
+    - name: 📥 Checkout code
       uses: actions/checkout@v4
       
-    - name: Setup .NET
+    - name: 🔧 Setup .NET
       uses: actions/setup-dotnet@v4
       with:
         dotnet-version: ${{ env.DOTNET_VERSION }}
         
-    - name: Cache dependencies
-      uses: actions/cache@v3
+    - name: 📦 Cache dependencies
+      uses: actions/cache@v4
       with:
         path: ~/.nuget/packages
         key: ${{ runner.os }}-nuget-${{ hashFiles('**/*.csproj') }}
         restore-keys: |
           ${{ runner.os }}-nuget-
           
-    - name: Restore dependencies
+    - name: 🔄 Restore dependencies
       run: dotnet restore
       working-directory: ${{ env.WORKING_DIRECTORY }}
       
-    - name: Build solution
+    - name: 🔨 Build solution
       run: dotnet build --no-restore --configuration Release
       working-directory: ${{ env.WORKING_DIRECTORY }}
       
-    - name: Run unit tests
-      run: dotnet test --no-build --configuration Release --verbosity normal --collect:"XPlat Code Coverage" --results-directory ./coverage
+    - name: 🧪 Run unit tests
+      run: |
+        dotnet test --no-build --configuration Release --verbosity normal \
+          --collect:"XPlat Code Coverage" --results-directory ./coverage \
+          --logger "trx;LogFileName=test-results.trx"
       working-directory: ${{ env.WORKING_DIRECTORY }}
       
-    - name: Generate code coverage report
-      uses: codecov/codecov-action@v3
+    - name: 📊 Upload test results
+      uses: dorny/test-reporter@v1
+      if: success() || failure()
+      with:
+        name: .NET Tests
+        path: ./coverage/*.trx
+        reporter: dotnet-trx
+        
+    - name: 📈 Generate code coverage report
+      uses: codecov/codecov-action@v4
       with:
         directory: ./coverage
         fail_ci_if_error: false
         
-    - name: Publish application
-      run: dotnet publish InventoryTracker.Web/InventoryTracker.Web.csproj --configuration Release --no-build --output ./publish
+    - name: 📦 Publish application
+      run: |
+        dotnet publish InventoryTracker.Web/InventoryTracker.Web.csproj \
+          --configuration Release --no-build --output ./publish
       working-directory: ${{ env.WORKING_DIRECTORY }}
       
-    - name: Upload build artifacts
-      uses: actions/upload-artifact@v3
+    - name: 🏗️ Upload build artifacts
+      uses: actions/upload-artifact@v4
       with:
-        name: webapp-build
+        name: webapp-build-${{ github.sha }}
         path: ./publish
+        retention-days: 7
 
   security-scan:
+    name: Security Scan
     runs-on: ubuntu-latest
     needs: build-and-test
     
     steps:
-    - name: Checkout code
+    - name: 📥 Checkout code
       uses: actions/checkout@v4
       
-    - name: Run security scan
-      uses: securecodewarrior/github-action-add-sarif@v1
+    - name: 🔒 Initialize CodeQL
+      uses: github/codeql-action/init@v3
       with:
-        sarif-file: 'security-scan-results.sarif'
-      continue-on-error: true
+        languages: csharp
+        
+    - name: 🔧 Setup .NET
+      uses: actions/setup-dotnet@v4
+      with:
+        dotnet-version: ${{ env.DOTNET_VERSION }}
+        
+    - name: 🔨 Build for security scan
+      run: dotnet build --configuration Release
+      working-directory: ${{ env.WORKING_DIRECTORY }}
+      
+    - name: 🔍 Perform CodeQL Analysis
+      uses: github/codeql-action/analyze@v3
+      
+    - name: 🛡️ Run dependency scan
+      uses: ossf/scorecard-action@v2.3.1
+      with:
+        results_file: results.sarif
+        results_format: sarif
+        repo_token: ${{ secrets.SCORECARD_READ_TOKEN }}
+        
+    - name: 📋 Upload SARIF results
+      uses: github/codeql-action/upload-sarif@v3
+      with:
+        sarif_file: results.sarif
 
-  deploy-to-staging:
+  validate-testapps-connection:
+    name: Validate TestApps Database Connection
     runs-on: ubuntu-latest
-    needs: [build-and-test, security-scan]
-    if: github.ref == 'refs/heads/develop'
-    environment: staging
+    needs: build-and-test
+    if: github.event_name != 'pull_request'
     
     steps:
-    - name: Download build artifacts
-      uses: actions/download-artifact@v3
+    - name: 📥 Checkout code
+      uses: actions/checkout@v4
+      
+    - name: 🔧 Setup .NET
+      uses: actions/setup-dotnet@v4
       with:
-        name: webapp-build
+        dotnet-version: ${{ env.DOTNET_VERSION }}
+        
+    - name: 🔍 Test database connection
+      run: |
+        echo "Testing connection to TestApps database..."
+        dotnet run --project TestDatabaseConnection
+      working-directory: ${{ env.WORKING_DIRECTORY }}
+      env:
+        ConnectionStrings__DefaultConnection: ${{ secrets.TESTAPPS_CONNECTION_STRING }}
+  deploy-to-staging:
+    name: Deploy to Staging
+    runs-on: ubuntu-latest
+    needs: [build-and-test, security-scan, validate-testapps-connection]
+    if: github.ref == 'refs/heads/develop' || (github.event_name == 'workflow_dispatch' && github.event.inputs.environment == 'staging')
+    environment: 
+      name: staging
+      url: ${{ steps.deploy.outputs.webapp-url }}
+    
+    steps:
+    - name: 📥 Download build artifacts
+      uses: actions/download-artifact@v4
+      with:
+        name: webapp-build-${{ github.sha }}
         path: ./publish
         
-    - name: Deploy to Azure Web App (Staging)
-      uses: azure/webapps-deploy@v2
+    - name: 🔐 Azure Login
+      uses: azure/login@v2
       with:
-        app-name: ${{ env.AZURE_WEBAPP_NAME }}-staging
-        publish-profile: ${{ secrets.AZURE_WEBAPP_PUBLISH_PROFILE_STAGING }}
+        creds: ${{ secrets.AZURE_CREDENTIALS_STAGING }}
+        
+    - name: 🚀 Deploy to Azure Web App (Staging)
+      id: deploy
+      uses: azure/webapps-deploy@v3
+      with:
+        app-name: app-rfid-inventory-tracker-staging
         package: ./publish
+        
+    - name: ⚙️ Configure app settings
+      uses: azure/appservice-settings@v1
+      with:
+        app-name: app-rfid-inventory-tracker-staging
+        app-settings-json: |
+          [
+            {
+              "name": "ASPNETCORE_ENVIRONMENT",
+              "value": "Staging"
+            },
+            {
+              "name": "ConnectionStrings__DefaultConnection",
+              "value": "${{ secrets.TESTAPPS_CONNECTION_STRING }}"
+            },
+            {
+              "name": "ApplicationInsights__ConnectionString",
+              "value": "${{ secrets.APPLICATION_INSIGHTS_CONNECTION_STRING_STAGING }}"
+            }
+          ]
+          
+    - name: 🏥 Health check
+      run: |
+        echo "Waiting for application to start..."
+        sleep 30
+        curl -f ${{ steps.deploy.outputs.webapp-url }}/health || exit 1
 
   deploy-to-production:
+    name: Deploy to Production
     runs-on: ubuntu-latest
-    needs: [build-and-test, security-scan]
-    if: github.ref == 'refs/heads/main'
-    environment: production
+    needs: [build-and-test, security-scan, validate-testapps-connection]
+    if: github.ref == 'refs/heads/main' || (github.event_name == 'workflow_dispatch' && github.event.inputs.environment == 'production')
+    environment: 
+      name: production
+      url: ${{ steps.deploy.outputs.webapp-url }}
     
     steps:
-    - name: Download build artifacts
-      uses: actions/download-artifact@v3
+    - name: 📥 Download build artifacts
+      uses: actions/download-artifact@v4
       with:
-        name: webapp-build
+        name: webapp-build-${{ github.sha }}
         path: ./publish
         
-    - name: Deploy to Azure Web App (Production)
-      uses: azure/webapps-deploy@v2
+    - name: 🔐 Azure Login
+      uses: azure/login@v2
       with:
-        app-name: ${{ env.AZURE_WEBAPP_NAME }}
-        publish-profile: ${{ secrets.AZURE_WEBAPP_PUBLISH_PROFILE_PRODUCTION }}
+        creds: ${{ secrets.AZURE_CREDENTIALS_PRODUCTION }}
+        
+    - name: 🚀 Deploy to Azure Web App (Production)
+      id: deploy
+      uses: azure/webapps-deploy@v3
+      with:
+        app-name: app-rfid-inventory-tracker-prod
         package: ./publish
+        
+    - name: ⚙️ Configure app settings
+      uses: azure/appservice-settings@v1
+      with:
+        app-name: app-rfid-inventory-tracker-prod
+        app-settings-json: |
+          [
+            {
+              "name": "ASPNETCORE_ENVIRONMENT",
+              "value": "Production"
+            },
+            {
+              "name": "ConnectionStrings__DefaultConnection",
+              "value": "${{ secrets.TESTAPPS_CONNECTION_STRING }}"
+            },
+            {
+              "name": "ApplicationInsights__ConnectionString",
+              "value": "${{ secrets.APPLICATION_INSIGHTS_CONNECTION_STRING_PRODUCTION }}"
+            }
+          ]
+          
+    - name: 🏥 Health check
+      run: |
+        echo "Waiting for application to start..."
+        sleep 30
+        curl -f ${{ steps.deploy.outputs.webapp-url }}/health || exit 1
+        
+    - name: 🔔 Notify teams
+      if: success()
+      run: |
+        echo "✅ Production deployment successful!"
+        echo "🌐 Application URL: ${{ steps.deploy.outputs.webapp-url }}"
 
-  database-migration:
+  verify-deployment:
+    name: Verify Deployment
     runs-on: ubuntu-latest
     needs: [deploy-to-staging, deploy-to-production]
     if: always() && (needs.deploy-to-staging.result == 'success' || needs.deploy-to-production.result == 'success')
     
     steps:
-    - name: Checkout code
+    - name: 📥 Checkout code
       uses: actions/checkout@v4
       
-    - name: Setup .NET
+    - name: 🔧 Setup .NET
       uses: actions/setup-dotnet@v4
       with:
         dotnet-version: ${{ env.DOTNET_VERSION }}
         
-    - name: Install EF Core tools
-      run: dotnet tool install --global dotnet-ef
-      
-    - name: Update database (Staging)
-      if: needs.deploy-to-staging.result == 'success'
-      run: dotnet ef database update --project InventoryTracker.Data --startup-project InventoryTracker.Web --connection "${{ secrets.DATABASE_CONNECTION_STRING_STAGING }}"
+    - name: 🔐 Azure Login
+      uses: azure/login@v2
+      with:
+        creds: ${{ needs.deploy-to-staging.result == 'success' && secrets.AZURE_CREDENTIALS_STAGING || secrets.AZURE_CREDENTIALS_PRODUCTION }}
+        
+    - name: 🧪 Run integration tests
+      run: |
+        echo "Running post-deployment integration tests..."
+        # Add integration test commands here
+        # dotnet test InventoryTracker.IntegrationTests --configuration Release
+        
+    - name: 📊 Validate TestApps data
+      run: |
+        echo "Validating TestApps database connectivity and data integrity..."
+        dotnet run --project TestDatabaseConnection
       working-directory: ${{ env.WORKING_DIRECTORY }}
-      
-    - name: Update database (Production)
-      if: needs.deploy-to-production.result == 'success'
-      run: dotnet ef database update --project InventoryTracker.Data --startup-project InventoryTracker.Web --connection "${{ secrets.DATABASE_CONNECTION_STRING_PRODUCTION }}"
-      working-directory: ${{ env.WORKING_DIRECTORY }}
+      env:
+        ConnectionStrings__DefaultConnection: ${{ secrets.TESTAPPS_CONNECTION_STRING }}
+        
+    - name: 📈 Application monitoring setup
+      run: |
+        echo "Setting up monitoring alerts..."
+        # Add monitoring configuration commands here
