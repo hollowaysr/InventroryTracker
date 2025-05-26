@@ -68,7 +68,6 @@ jobs:
       with:
         working_directory: ${{ env.TF_WORKING_DIR }}
         soft_fail: true
-
   terraform-plan-staging:
     name: Plan Infrastructure (Staging)
     runs-on: ubuntu-latest
@@ -79,7 +78,8 @@ jobs:
     steps:
     - name: 📥 Checkout code
       uses: actions/checkout@v4
-        - name: 🔧 Setup Terraform
+      
+    - name: 🔧 Setup Terraform
       uses: hashicorp/setup-terraform@v3
       with:
         terraform_version: ${{ env.TF_VERSION }}
@@ -202,7 +202,6 @@ jobs:
         echo "🏗️ Infrastructure deployed successfully!"
         echo "🌐 App Service URL: ${{ steps.output.outputs.app_service_url }}"
         echo "🗄️ SQL Server FQDN: ${{ steps.output.outputs.sql_server_fqdn }}"
-
   terraform-plan-production:
     name: Plan Infrastructure (Production)
     runs-on: ubuntu-latest
@@ -219,7 +218,8 @@ jobs:
       with:
         terraform_version: ${{ env.TF_VERSION }}
         terraform_wrapper: false
-          - name: 🔐 Azure Login
+        
+    - name: 🔐 Azure Login
       uses: azure/login@v2
       with:
         creds: ${{ secrets.AZURE_CREDENTIALS_PRODUCTION }}
@@ -363,11 +363,11 @@ jobs:
       uses: azure/login@v2
       with:
         creds: ${{ github.event.inputs.environment == 'staging' && secrets.AZURE_CREDENTIALS_STAGING || secrets.AZURE_CREDENTIALS_PRODUCTION }}
-        
-    - name: ⚙️ Terraform Init
+          - name: ⚙️ Terraform Init
       run: |
         terraform init \
-          -backend-config="resource_group_name=${{ secrets.TF_STATE_RESOURCE_GROUP }}" \          -backend-config="storage_account_name=${{ secrets.TF_STATE_STORAGE_ACCOUNT }}" \
+          -backend-config="resource_group_name=${{ secrets.TF_STATE_RESOURCE_GROUP }}" \
+          -backend-config="storage_account_name=${{ secrets.TF_STATE_STORAGE_ACCOUNT }}" \
           -backend-config="container_name=tfstate" \
           -backend-config="key=rfid-inventory-tracker-${{ github.event.inputs.environment }}.terraform.tfstate"
       working-directory: ${{ env.TF_WORKING_DIR }}

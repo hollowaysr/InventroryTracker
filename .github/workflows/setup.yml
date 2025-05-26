@@ -59,13 +59,13 @@ jobs:
         echo ""
         echo "🗄️ TestApps connection string format:"
         echo "Server=heccdbs.database.windows.net;Database=TestApps;User ID=<username>;Password=<password>;Encrypt=True;TrustServerCertificate=False;Connection Timeout=30;"
-
   setup-terraform-backend:
     name: Setup Terraform Backend
     runs-on: ubuntu-latest
     if: github.event.inputs.action == 'setup-terraform-backend'
     
-    steps:    - name: 🔐 Azure Login
+    steps:
+    - name: 🔐 Azure Login
       uses: azure/login@v2
       with:
         creds: ${{ secrets.AZURE_CREDENTIALS_STAGING }}
