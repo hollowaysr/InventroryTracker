@@ -1,14 +1,15 @@
 using InventoryTracker.Core.DTOs;
 
 namespace InventoryTracker.Core.Services.Interfaces
-{
-    public interface ICustomerListService
+{    public interface ICustomerListService
     {
         Task<IEnumerable<CustomerListDto>> GetAllAsync();
-        Task<CustomerListDto?> GetByIdAsync(int id);
-        Task<CustomerListDto?> GetByIdWithTagsAsync(int id);
+        Task<CustomerListDto?> GetByIdAsync(Guid id);
+        Task<CustomerListDto?> GetByIdWithTagsAsync(Guid id);
+        Task<IEnumerable<CustomerListDto>> GetByNameAsync(string name);
         Task<CustomerListDto> CreateAsync(CreateCustomerListDto createDto);
-        Task<CustomerListDto> UpdateAsync(int id, UpdateCustomerListDto updateDto);
-        Task<bool> DeleteAsync(int id);        Task<bool> ExistsAsync(int id);
+        Task<CustomerListDto> UpdateAsync(Guid id, UpdateCustomerListDto updateDto);
+        Task<bool> DeleteAsync(Guid id);
+        Task<bool> ExistsAsync(Guid id);
     }
 }

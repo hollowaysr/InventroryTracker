@@ -1,13 +1,4 @@
--- Performance indexes for RFID table
-CREATE NONCLUSTERED INDEX [IX_RFID_CreatedAt] 
-ON [dbo].[RFID] ([CreatedAt] DESC)
-INCLUDE ([RFID], [Name], [ListId]);
-
-CREATE NONCLUSTERED INDEX [IX_RFID_UpdatedAt] 
-ON [dbo].[RFID] ([UpdatedAt] DESC)
-WHERE [UpdatedAt] IS NOT NULL
-INCLUDE ([Id], [RFID], [Name]);
-
+-- Performance indexes for RFID table optimized for TestApps database schema
 CREATE NONCLUSTERED INDEX [IX_RFID_Color_Size] 
 ON [dbo].[RFID] ([Color], [Size])
 WHERE [Color] IS NOT NULL OR [Size] IS NOT NULL
@@ -20,12 +11,12 @@ INCLUDE ([Id], [RFID], [ListId], [Color], [Size]);
 -- Composite index for list-based queries with metadata filtering
 CREATE NONCLUSTERED INDEX [IX_RFID_ListId_Color_Size] 
 ON [dbo].[RFID] ([ListId], [Color], [Size])
-INCLUDE ([Id], [RFID], [Name], [Description], [CreatedAt]);
+INCLUDE ([Id], [RFID], [Name], [Description]);
 
 -- Covering index for search operations
 CREATE NONCLUSTERED INDEX [IX_RFID_Search_Covering] 
 ON [dbo].[RFID] ([ListId], [Name])
-INCLUDE ([Id], [RFID], [Description], [Color], [Size], [CreatedAt], [UpdatedAt]);
+INCLUDE ([Id], [RFID], [Description], [Color], [Size]);
 
 -- Full-text search optimization (if full-text search is enabled)
 -- CREATE FULLTEXT INDEX ON [dbo].[RFID] ([Name], [Description]) 

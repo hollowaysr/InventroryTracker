@@ -20,15 +20,13 @@ namespace InventoryTracker.Data.Repositories
                 .Include(cl => cl.RfidTags)
                 .OrderBy(cl => cl.Name)
                 .ToListAsync();
-        }
-
-        public async Task<CustomerList?> GetByIdAsync(int id)
+        }        public async Task<CustomerList?> GetByIdAsync(Guid id)
         {
             return await _context.CustomerLists
                 .FirstOrDefaultAsync(cl => cl.Id == id);
         }
 
-        public async Task<CustomerList?> GetByIdWithTagsAsync(int id)
+        public async Task<CustomerList?> GetByIdWithTagsAsync(Guid id)
         {
             return await _context.CustomerLists
                 .Include(cl => cl.RfidTags)
@@ -47,9 +45,7 @@ namespace InventoryTracker.Data.Repositories
             _context.CustomerLists.Update(customerList);
             await _context.SaveChangesAsync();
             return customerList;
-        }
-
-        public async Task<bool> DeleteAsync(int id)
+        }        public async Task<bool> DeleteAsync(Guid id)
         {
             var customerList = await _context.CustomerLists.FindAsync(id);
             if (customerList == null)
@@ -58,14 +54,28 @@ namespace InventoryTracker.Data.Repositories
             _context.CustomerLists.Remove(customerList);
             await _context.SaveChangesAsync();
             return true;
-        }
-
-        public async Task<bool> ExistsAsync(int id)
+        }        public async Task<bool> ExistsAsync(Guid id)
         {
             return await _context.CustomerLists.AnyAsync(cl => cl.Id == id);
         }
 
-        public async Task<bool> ExistsByNameAsync(string name, int? excludeId = null)
+        public async Task<IEnumerable<CustomerList>> GetByNameAsync(string name)
+        {
+            return await _context.CustomerLists
+                .Include(cl => cl.RfidTags)
+                .Where(cl => cl.Name.Contains(name))
+                .OrderBy(cl => cl.Name)
+                .ToListAsync();
+        }
+
+        public async Task<CustomerList?> GetBySystemRefAsync(string systemRef)
+        {
+            return await _context.CustomerLists
+                .Include(cl => cl.RfidTags)
+                .FirstOrDefaultAsync(cl => cl.SystemRef == systemRef);
+        }
+
+        public async Task<bool> ExistsByNameAsync(string name, Guid? excludeId = null)
         {
             var query = _context.CustomerLists.Where(cl => cl.Name == name);
             

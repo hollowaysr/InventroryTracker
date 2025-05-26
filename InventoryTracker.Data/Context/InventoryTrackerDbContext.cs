@@ -11,9 +11,7 @@ namespace InventoryTracker.Data.Context
         }
 
         public DbSet<CustomerList> CustomerLists { get; set; }
-        public DbSet<RfidTag> RfidTags { get; set; }
-
-        protected override void OnModelCreating(ModelBuilder modelBuilder)
+        public DbSet<RfidTag> RfidTags { get; set; }        protected override void OnModelCreating(ModelBuilder modelBuilder)
         {
             base.OnModelCreating(modelBuilder);
 
@@ -25,19 +23,14 @@ namespace InventoryTracker.Data.Context
                 
                 entity.Property(e => e.Name)
                     .IsRequired()
-                    .HasMaxLength(100);
+                    .HasMaxLength(50)
+                    .HasColumnType("varchar(50)");
                     
                 entity.Property(e => e.Description)
-                    .HasMaxLength(500);
+                    .HasColumnType("varchar(max)");
                     
                 entity.Property(e => e.SystemRef)
                     .HasMaxLength(50);
-                    
-                entity.Property(e => e.CreatedAt)
-                    .HasDefaultValueSql("GETUTCDATE()");
-                    
-                entity.Property(e => e.UpdatedAt)
-                    .HasDefaultValueSql("GETUTCDATE()");
 
                 // Configure relationships
                 entity.HasMany(e => e.RfidTags)
@@ -61,26 +54,23 @@ namespace InventoryTracker.Data.Context
                 
                 entity.Property(e => e.Rfid)
                     .IsRequired()
-                    .HasMaxLength(50);
+                    .HasMaxLength(50)
+                    .HasColumnName("RFID")
+                    .HasColumnType("varchar(50)");
                     
                 entity.Property(e => e.Name)
-                    .IsRequired()
-                    .HasMaxLength(100);
+                    .HasMaxLength(50)
+                    .HasColumnType("varchar(50)");
                     
                 entity.Property(e => e.Description)
-                    .HasMaxLength(500);
+                    .HasColumnType("varchar(max)");
                     
                 entity.Property(e => e.Color)
                     .HasMaxLength(50);
                     
                 entity.Property(e => e.Size)
-                    .HasMaxLength(50);
-                    
-                entity.Property(e => e.CreatedAt)
-                    .HasDefaultValueSql("GETUTCDATE()");
-                    
-                entity.Property(e => e.UpdatedAt)
-                    .HasDefaultValueSql("GETUTCDATE()");
+                    .HasMaxLength(50)
+                    .HasColumnType("varchar(50)");
 
                 // Configure relationships
                 entity.HasOne(e => e.CustomerList)
@@ -99,44 +89,14 @@ namespace InventoryTracker.Data.Context
                 entity.HasIndex(e => e.Name)
                     .HasDatabaseName("IX_RFID_Name");
             });
-        }
-
-        public override int SaveChanges()
+        }        public override int SaveChanges()
         {
-            UpdateTimestamps();
             return base.SaveChanges();
         }
 
         public override async Task<int> SaveChangesAsync(CancellationToken cancellationToken = default)
         {
-            UpdateTimestamps();
             return await base.SaveChangesAsync(cancellationToken);
-        }
-
-        private void UpdateTimestamps()
-        {
-            var entries = ChangeTracker.Entries()
-                .Where(e => e.State == EntityState.Added || e.State == EntityState.Modified);
-
-            foreach (var entry in entries)
-            {
-                if (entry.Entity is CustomerList customerList)
-                {
-                    if (entry.State == EntityState.Added)
-                    {
-                        customerList.CreatedAt = DateTime.UtcNow;
-                    }
-                    customerList.UpdatedAt = DateTime.UtcNow;
-                }
-                else if (entry.Entity is RfidTag rfidTag)
-                {
-                    if (entry.State == EntityState.Added)
-                    {
-                        rfidTag.CreatedAt = DateTime.UtcNow;
-                    }
-                    rfidTag.UpdatedAt = DateTime.UtcNow;
-                }
-            }
         }
     }
 }

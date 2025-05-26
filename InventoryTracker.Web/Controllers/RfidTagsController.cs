@@ -4,7 +4,8 @@ using InventoryTracker.Core.Services.Interfaces;
 using Microsoft.AspNetCore.Authorization;
 
 namespace InventoryTracker.Web.Controllers
-{    [ApiController]
+{
+    [ApiController]
     [Route("api/[controller]")]
     [Authorize(Policy = "RequireInventoryRole")]
     public class RfidTagsController : ControllerBase
@@ -31,8 +32,7 @@ namespace InventoryTracker.Web.Controllers
             }
             catch (Exception ex)
             {
-                _logger.LogError(ex, "Error retrieving RFID tags");
-                return StatusCode(500, "An error occurred while retrieving RFID tags");
+                _logger.LogError(ex, "Error retrieving RFID tags");                return StatusCode(500, "An error occurred while retrieving RFID tags");
             }
         }
 
@@ -40,7 +40,7 @@ namespace InventoryTracker.Web.Controllers
         /// Get RFID tags by customer list ID (FR006)
         /// </summary>
         [HttpGet("by-list/{listId}")]
-        public async Task<ActionResult<IEnumerable<RfidTagDto>>> GetByListId(int listId)
+        public async Task<ActionResult<IEnumerable<RfidTagDto>>> GetByListId(Guid listId)
         {
             try
             {
@@ -48,8 +48,7 @@ namespace InventoryTracker.Web.Controllers
                 return Ok(rfidTags);
             }
             catch (Exception ex)
-            {
-                _logger.LogError(ex, "Error retrieving RFID tags for list ID {ListId}", listId);
+            {                _logger.LogError(ex, "Error retrieving RFID tags for list ID {ListId}", listId);
                 return StatusCode(500, "An error occurred while retrieving RFID tags");
             }
         }
@@ -58,7 +57,7 @@ namespace InventoryTracker.Web.Controllers
         /// Get a specific RFID tag by ID (FR007)
         /// </summary>
         [HttpGet("{id}")]
-        public async Task<ActionResult<RfidTagDto>> GetById(int id)
+        public async Task<ActionResult<RfidTagDto>> GetById(Guid id)
         {
             try
             {
@@ -158,8 +157,7 @@ namespace InventoryTracker.Web.Controllers
                 return BadRequest(ex.Message);
             }
             catch (Exception ex)
-            {
-                _logger.LogError(ex, "Error creating RFID tags in bulk");
+            {                _logger.LogError(ex, "Error creating RFID tags in bulk");
                 return StatusCode(500, "An error occurred while creating RFID tags in bulk");
             }
         }
@@ -168,7 +166,7 @@ namespace InventoryTracker.Web.Controllers
         /// Update an existing RFID tag (FR009)
         /// </summary>
         [HttpPut("{id}")]
-        public async Task<ActionResult<RfidTagDto>> Update(int id, [FromBody] UpdateRfidTagDto updateDto)
+        public async Task<ActionResult<RfidTagDto>> Update(Guid id, [FromBody] UpdateRfidTagDto updateDto)
         {
             try
             {
@@ -191,8 +189,7 @@ namespace InventoryTracker.Web.Controllers
                 return BadRequest(ex.Message);
             }
             catch (Exception ex)
-            {
-                _logger.LogError(ex, "Error updating RFID tag with ID {Id}", id);
+            {                _logger.LogError(ex, "Error updating RFID tag with ID {Id}", id);
                 return StatusCode(500, "An error occurred while updating the RFID tag");
             }
         }
@@ -201,7 +198,7 @@ namespace InventoryTracker.Web.Controllers
         /// Delete an RFID tag (FR009)
         /// </summary>
         [HttpDelete("{id}")]
-        public async Task<ActionResult> Delete(int id)
+        public async Task<ActionResult> Delete(Guid id)
         {
             try
             {
@@ -220,15 +217,14 @@ namespace InventoryTracker.Web.Controllers
             catch (Exception ex)
             {
                 _logger.LogError(ex, "Error deleting RFID tag with ID {Id}", id);
-                return StatusCode(500, "An error occurred while deleting the RFID tag");
-            }
+                return StatusCode(500, "An error occurred while deleting the RFID tag");            }
         }
 
         /// <summary>
         /// Delete multiple RFID tags in bulk (FR011)
         /// </summary>
         [HttpDelete("bulk")]
-        public async Task<ActionResult> DeleteBulk([FromBody] IEnumerable<int> ids)
+        public async Task<ActionResult> DeleteBulk([FromBody] IEnumerable<Guid> ids)
         {
             try
             {

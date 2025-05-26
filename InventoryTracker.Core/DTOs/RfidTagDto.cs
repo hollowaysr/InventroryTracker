@@ -1,22 +1,19 @@
 using System.ComponentModel.DataAnnotations;
 
 namespace InventoryTracker.Core.DTOs
-{
-    public class RfidTagDto
+{    public class RfidTagDto
     {
-        public int Id { get; set; }
+        public Guid Id { get; set; }
         
         [Required]
         [StringLength(50)]
         public string Rfid { get; set; } = string.Empty;
         
-        public int ListId { get; set; }
+        public Guid? ListId { get; set; }
         
-        [Required]
-        [StringLength(100)]
-        public string Name { get; set; } = string.Empty;
+        [StringLength(50)]
+        public string? Name { get; set; }
         
-        [StringLength(500)]
         public string? Description { get; set; }
         
         [StringLength(50)]
@@ -25,27 +22,20 @@ namespace InventoryTracker.Core.DTOs
         [StringLength(50)]
         public string? Size { get; set; }
         
-        public DateTime CreatedAt { get; set; }
-        public DateTime UpdatedAt { get; set; }
-        
         // Navigation property
         public string CustomerListName { get; set; } = string.Empty;
     }
-    
-    public class CreateRfidTagDto
+      public class CreateRfidTagDto
     {
         [Required]
         [StringLength(50)]
         public string Rfid { get; set; } = string.Empty;
         
-        [Required]
-        public int ListId { get; set; }
+        public Guid? ListId { get; set; }
         
-        [Required]
-        [StringLength(100)]
-        public string Name { get; set; } = string.Empty;
+        [StringLength(50)]
+        public string? Name { get; set; }
         
-        [StringLength(500)]
         public string? Description { get; set; }
         
         [StringLength(50)]
@@ -74,11 +64,10 @@ namespace InventoryTracker.Core.DTOs
         [StringLength(50)]
         public string? Size { get; set; }
     }
-    
-    public class BulkCreateRfidTagDto
+      public class BulkCreateRfidTagDto
     {
         [Required]
-        public int ListId { get; set; }
+        public Guid ListId { get; set; }
         
         [Required]
         [MinLength(1)]
@@ -89,16 +78,14 @@ namespace InventoryTracker.Core.DTOs
     public class BulkCreateFromCsvDto
     {
         [Required]
-        public int ListId { get; set; }
+        public Guid ListId { get; set; }
         
         [Required]
         [StringLength(10000)]
         public string CommaSeparatedRfids { get; set; } = string.Empty;
-        
-        [StringLength(100)]
+          [StringLength(50)]
         public string? DefaultName { get; set; }
         
-        [StringLength(500)]
         public string? DefaultDescription { get; set; }
         
         [StringLength(50)]
@@ -106,13 +93,11 @@ namespace InventoryTracker.Core.DTOs
         
         [StringLength(50)]
         public string? DefaultSize { get; set; }
-    }
-
-    // FR009: Export functionality
+    }    // FR009: Export functionality
     public class ExportRfidTagsDto
     {
         [Required]
-        public int ListId { get; set; }
+        public Guid ListId { get; set; }
         
         [Required]
         public ExportFormat Format { get; set; }
@@ -128,16 +113,14 @@ namespace InventoryTracker.Core.DTOs
         Excel = 2,
         Json = 3,
         Xml = 4
-    }
-
-    public class ShareRfidTagsDto
+    }    public class ShareRfidTagsDto
     {
         [Required]
         [MinLength(1)]
-        public List<int> TagIds { get; set; } = new();
+        public List<Guid> TagIds { get; set; } = new();
         
         [Required]
-        public int TargetListId { get; set; }
+        public Guid TargetListId { get; set; }
         
         public bool CopyMode { get; set; } = true; // true for copy, false for move
     }

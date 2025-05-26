@@ -2,6 +2,7 @@ using FluentAssertions;
 using InventoryTracker.Core.DTOs;
 using InventoryTracker.Core.Entities;
 using InventoryTracker.Data;
+using InventoryTracker.Data.Context;
 using Microsoft.AspNetCore.Hosting;
 using Microsoft.AspNetCore.Mvc.Testing;
 using Microsoft.EntityFrameworkCore;
@@ -17,6 +18,7 @@ public class RfidTagsControllerIntegrationTests : IClassFixture<WebApplicationFa
     private readonly WebApplicationFactory<Program> _factory;
     private readonly HttpClient _client;
     private readonly InventoryTrackerDbContext _context;
+    private readonly Guid _testCustomerListId = Guid.NewGuid();
 
     public RfidTagsControllerIntegrationTests(WebApplicationFactory<Program> factory)
     {
@@ -35,9 +37,7 @@ public class RfidTagsControllerIntegrationTests : IClassFixture<WebApplicationFa
                 services.AddDbContext<InventoryTrackerDbContext>(options =>
                     options.UseInMemoryDatabase(databaseName: Guid.NewGuid().ToString()));
             });
-        });
-
-        _client = _factory.CreateClient();
+        });        _client = _factory.CreateClient();
         
         // Get the in-memory database context
         var scope = _factory.Services.CreateScope();
@@ -50,7 +50,7 @@ public class RfidTagsControllerIntegrationTests : IClassFixture<WebApplicationFa
     {
         var customerList = new CustomerList
         {
-            Id = 1,
+            Id = _testCustomerListId,
             Name = "Test Customer List",
             Description = "Test Description",
             SystemRef = "SYS001"
@@ -60,8 +60,8 @@ public class RfidTagsControllerIntegrationTests : IClassFixture<WebApplicationFa
 
         var rfidTags = new List<RfidTag>
         {
-            new RfidTag { Id = 1, Rfid = "TAG001", Name = "Tag 1", ListId = 1, Description = "Description 1" },
-            new RfidTag { Id = 2, Rfid = "TAG002", Name = "Tag 2", ListId = 1, Description = "Description 2" }
+            new RfidTag { Id = Guid.NewGuid(), Rfid = "TAG001", Name = "Tag 1", ListId = _testCustomerListId, Description = "Description 1" },
+            new RfidTag { Id = Guid.NewGuid(), Rfid = "TAG002", Name = "Tag 2", ListId = _testCustomerListId, Description = "Description 2" }
         };
 
         _context.RfidTags.AddRange(rfidTags);
@@ -70,11 +70,10 @@ public class RfidTagsControllerIntegrationTests : IClassFixture<WebApplicationFa
 
     [Fact]
     public async Task BulkCreateFromCsv_WithValidData_ShouldReturn201()
-    {
-        // Arrange
+    {        // Arrange
         var csvDto = new BulkCreateFromCsvDto
         {
-            ListId = 1,
+            ListId = _testCustomerListId,
             CommaSeparatedRfids = "TAG101, TAG102, TAG103",
             DefaultName = "Bulk Tag",
             DefaultDescription = "Imported via CSV",
@@ -97,11 +96,10 @@ public class RfidTagsControllerIntegrationTests : IClassFixture<WebApplicationFa
 
     [Fact]
     public async Task BulkCreateFromCsv_WithDuplicateRfids_ShouldReturn409()
-    {
-        // Arrange
+    {        // Arrange
         var csvDto = new BulkCreateFromCsvDto
         {
-            ListId = 1,
+            ListId = _testCustomerListId,
             CommaSeparatedRfids = "TAG001, TAG104, TAG105" // TAG001 already exists
         };
 
@@ -114,11 +112,10 @@ public class RfidTagsControllerIntegrationTests : IClassFixture<WebApplicationFa
 
     [Fact]
     public async Task BulkCreateFromCsv_WithInvalidListId_ShouldReturn400()
-    {
-        // Arrange
+    {        // Arrange
         var csvDto = new BulkCreateFromCsvDto
         {
-            ListId = 999, // Non-existent list
+            ListId = Guid.NewGuid(), // Non-existent list
             CommaSeparatedRfids = "TAG201, TAG202"
         };
 
@@ -131,11 +128,10 @@ public class RfidTagsControllerIntegrationTests : IClassFixture<WebApplicationFa
 
     [Fact]
     public async Task BulkCreateFromCsv_WithEmptyRfids_ShouldReturn400()
-    {
-        // Arrange
+    {        // Arrange
         var csvDto = new BulkCreateFromCsvDto
         {
-            ListId = 1,
+            ListId = _testCustomerListId,
             CommaSeparatedRfids = "   ,   ,   " // Only whitespace and commas
         };
 
@@ -148,11 +144,10 @@ public class RfidTagsControllerIntegrationTests : IClassFixture<WebApplicationFa
 
     [Fact]
     public async Task ExportTags_WithCsvFormat_ShouldReturnCsvFile()
-    {
-        // Arrange
+    {        // Arrange
         var exportDto = new ExportRfidTagsDto
         {
-            ListId = 1,
+            ListId = _testCustomerListId,
             Format = ExportFormat.Csv,
             IncludeMetadata = true
         };
@@ -172,11 +167,10 @@ public class RfidTagsControllerIntegrationTests : IClassFixture<WebApplicationFa
 
     [Fact]
     public async Task ExportTags_WithJsonFormat_ShouldReturnJsonFile()
-    {
-        // Arrange
+    {        // Arrange
         var exportDto = new ExportRfidTagsDto
         {
-            ListId = 1,
+            ListId = _testCustomerListId,
             Format = ExportFormat.Json,
             IncludeMetadata = true
         };
@@ -196,11 +190,10 @@ public class RfidTagsControllerIntegrationTests : IClassFixture<WebApplicationFa
 
     [Fact]
     public async Task ExportTags_WithXmlFormat_ShouldReturnXmlFile()
-    {
-        // Arrange
+    {        // Arrange
         var exportDto = new ExportRfidTagsDto
         {
-            ListId = 1,
+            ListId = _testCustomerListId,
             Format = ExportFormat.Xml,
             IncludeMetadata = false // Test without metadata
         };
@@ -217,15 +210,13 @@ public class RfidTagsControllerIntegrationTests : IClassFixture<WebApplicationFa
         content.Should().Contain("<RfidExport>");
         content.Should().Contain("TAG001");
         content.Should().NotContain("<Name>"); // Metadata should not be included
-    }
-
-    [Fact]
+    }    [Fact]
     public async Task ExportTags_WithInvalidListId_ShouldReturn400()
     {
         // Arrange
         var exportDto = new ExportRfidTagsDto
         {
-            ListId = 999,
+            ListId = Guid.NewGuid(),
             Format = ExportFormat.Csv
         };
 
@@ -238,11 +229,10 @@ public class RfidTagsControllerIntegrationTests : IClassFixture<WebApplicationFa
 
     [Fact]
     public async Task ExportAndEmailTags_WithValidEmail_ShouldReturn200()
-    {
-        // Arrange
+    {        // Arrange
         var exportDto = new ExportRfidTagsDto
         {
-            ListId = 1,
+            ListId = _testCustomerListId,
             Format = ExportFormat.Csv,
             EmailAddress = "test@example.com",
             IncludeMetadata = true
@@ -259,13 +249,12 @@ public class RfidTagsControllerIntegrationTests : IClassFixture<WebApplicationFa
         result.Should().Contain("test@example.com");
     }
 
-    [Fact]
-    public async Task ExportAndEmailTags_WithoutEmail_ShouldReturn400()
+    [Fact]    public async Task ExportAndEmailTags_WithoutEmail_ShouldReturn400()
     {
         // Arrange
         var exportDto = new ExportRfidTagsDto
         {
-            ListId = 1,
+            ListId = _testCustomerListId,
             Format = ExportFormat.Csv
             // EmailAddress not set
         };
@@ -277,18 +266,17 @@ public class RfidTagsControllerIntegrationTests : IClassFixture<WebApplicationFa
         response.StatusCode.Should().Be(HttpStatusCode.BadRequest);
     }
 
-    [Fact]
-    public async Task GetByListId_ShouldReturnTagsForList()
+    [Fact]    public async Task GetByListId_ShouldReturnTagsForList()
     {
         // Act
-        var response = await _client.GetAsync("/api/rfidtags/by-list/1");
+        var response = await _client.GetAsync($"/api/rfidtags/by-list/{_testCustomerListId}");
 
         // Assert
         response.StatusCode.Should().Be(HttpStatusCode.OK);
         
         var tags = await response.Content.ReadFromJsonAsync<List<RfidTagDto>>();
         tags.Should().HaveCount(2);
-        tags.Should().OnlyContain(t => t.ListId == 1);
+        tags.Should().OnlyContain(t => t.ListId == _testCustomerListId);
     }
 
     public void Dispose()

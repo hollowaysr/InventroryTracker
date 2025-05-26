@@ -20,9 +20,7 @@ namespace InventoryTracker.Data.Repositories
                 .Include(rt => rt.CustomerList)
                 .OrderBy(rt => rt.Name)
                 .ToListAsync();
-        }
-
-        public async Task<IEnumerable<RfidTag>> GetByListIdAsync(int listId)
+        }        public async Task<IEnumerable<RfidTag>> GetByListIdAsync(Guid listId)
         {
             return await _context.RfidTags
                 .Include(rt => rt.CustomerList)
@@ -31,18 +29,25 @@ namespace InventoryTracker.Data.Repositories
                 .ToListAsync();
         }
 
-        public async Task<RfidTag?> GetByIdAsync(int id)
+        public async Task<RfidTag?> GetByIdAsync(Guid id)
         {
             return await _context.RfidTags
                 .Include(rt => rt.CustomerList)
                 .FirstOrDefaultAsync(rt => rt.Id == id);
-        }
-
-        public async Task<RfidTag?> GetByRfidAsync(string rfid)
+        }        public async Task<RfidTag?> GetByRfidAsync(string rfid)
         {
             return await _context.RfidTags
                 .Include(rt => rt.CustomerList)
                 .FirstOrDefaultAsync(rt => rt.Rfid == rfid);
+        }
+
+        public async Task<IEnumerable<RfidTag>> GetByNameAsync(string name)
+        {
+            return await _context.RfidTags
+                .Include(rt => rt.CustomerList)
+                .Where(rt => rt.Name.Contains(name))
+                .OrderBy(rt => rt.Name)
+                .ToListAsync();
         }
 
         public async Task<RfidTag> CreateAsync(RfidTag rfidTag)
@@ -64,9 +69,7 @@ namespace InventoryTracker.Data.Repositories
             _context.RfidTags.Update(rfidTag);
             await _context.SaveChangesAsync();
             return rfidTag;
-        }
-
-        public async Task<bool> DeleteAsync(int id)
+        }        public async Task<bool> DeleteAsync(Guid id)
         {
             var rfidTag = await _context.RfidTags.FindAsync(id);
             if (rfidTag == null)
@@ -77,7 +80,7 @@ namespace InventoryTracker.Data.Repositories
             return true;
         }
 
-        public async Task<bool> DeleteBulkAsync(IEnumerable<int> ids)
+        public async Task<bool> DeleteBulkAsync(IEnumerable<Guid> ids)
         {
             var rfidTags = await _context.RfidTags
                 .Where(rt => ids.Contains(rt.Id))
@@ -91,12 +94,12 @@ namespace InventoryTracker.Data.Repositories
             return true;
         }
 
-        public async Task<bool> ExistsAsync(int id)
+        public async Task<bool> ExistsAsync(Guid id)
         {
             return await _context.RfidTags.AnyAsync(rt => rt.Id == id);
         }
 
-        public async Task<bool> ExistsByRfidAsync(string rfid, int? excludeId = null)
+        public async Task<bool> ExistsByRfidAsync(string rfid, Guid? excludeId = null)
         {
             var query = _context.RfidTags.Where(rt => rt.Rfid == rfid);
             
@@ -108,7 +111,7 @@ namespace InventoryTracker.Data.Repositories
             return await query.AnyAsync();
         }
 
-        public async Task<IEnumerable<RfidTag>> GetByIdsAsync(IEnumerable<int> ids)
+        public async Task<IEnumerable<RfidTag>> GetByIdsAsync(IEnumerable<Guid> ids)
         {
             return await _context.RfidTags
                 .Include(rt => rt.CustomerList)
@@ -116,7 +119,7 @@ namespace InventoryTracker.Data.Repositories
                 .ToListAsync();
         }
 
-        public async Task<bool> UpdateListIdBulkAsync(IEnumerable<int> tagIds, int targetListId)
+        public async Task<bool> UpdateListIdBulkAsync(IEnumerable<Guid> tagIds, Guid targetListId)
         {
             var tags = await _context.RfidTags
                 .Where(rt => tagIds.Contains(rt.Id))
@@ -134,7 +137,7 @@ namespace InventoryTracker.Data.Repositories
             return true;
         }
 
-        public async Task<IEnumerable<RfidTag>> CopyTagsToListAsync(IEnumerable<int> tagIds, int targetListId)
+        public async Task<IEnumerable<RfidTag>> CopyTagsToListAsync(IEnumerable<Guid> tagIds, Guid targetListId)
         {
             var originalTags = await _context.RfidTags
                 .Where(rt => tagIds.Contains(rt.Id))
