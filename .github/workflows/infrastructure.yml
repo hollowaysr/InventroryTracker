@@ -64,7 +64,8 @@ jobs:
       working-directory: ${{ env.TF_WORKING_DIR }}
       
     - name: 🔒 Terraform Security Scan
-      uses: aquasecurity/tfsec-action@v1.0.3      with:
+      uses: aquasecurity/tfsec-action@v1.0.3
+      with:
         working_directory: ${{ env.TF_WORKING_DIR }}
         soft_fail: true
 
@@ -342,7 +343,6 @@ jobs:
       run: |
         echo "✅ Production infrastructure deployment successful!"
         echo "🌐 Application URL: ${{ steps.output.outputs.app_service_url }}"
-
   terraform-destroy:
     name: Destroy Infrastructure
     runs-on: ubuntu-latest
@@ -358,7 +358,8 @@ jobs:
       with:
         terraform_version: ${{ env.TF_VERSION }}
         terraform_wrapper: false
-          - name: 🔐 Azure Login
+        
+    - name: 🔐 Azure Login
       uses: azure/login@v2
       with:
         creds: ${{ github.event.inputs.environment == 'staging' && secrets.AZURE_CREDENTIALS_STAGING || secrets.AZURE_CREDENTIALS_PRODUCTION }}
