@@ -1,7 +1,8 @@
 using FluentAssertions;
 using InventoryTracker.Core.DTOs;
 using InventoryTracker.Core.Entities;
-using InventoryTracker.Core.Interfaces.Repositories;
+using InventoryTracker.Core.Services.Interfaces;
+using InventoryTracker.Data.Repositories.Interfaces;
 using InventoryTracker.Data.Services;
 using Moq;
 
@@ -11,6 +12,8 @@ public class CustomerListServiceTests
 {
     private readonly Mock<ICustomerListRepository> _mockRepository;
     private readonly CustomerListService _service;
+    private readonly Guid _testListId1 = Guid.Parse("11111111-1111-1111-1111-111111111111");
+    private readonly Guid _testListId2 = Guid.Parse("22222222-2222-2222-2222-222222222222");
 
     public CustomerListServiceTests()
     {
@@ -24,8 +27,8 @@ public class CustomerListServiceTests
         // Arrange
         var customerLists = new List<CustomerList>
         {
-            new CustomerList { Id = 1, Name = "List 1", Description = "Description 1" },
-            new CustomerList { Id = 2, Name = "List 2", Description = "Description 2" }
+            new CustomerList { Id = _testListId1, Name = "List 1", Description = "Description 1" },
+            new CustomerList { Id = _testListId2, Name = "List 2", Description = "Description 2" }
         };
         _mockRepository.Setup(r => r.GetAllAsync()).ReturnsAsync(customerLists);
 
@@ -36,23 +39,20 @@ public class CustomerListServiceTests
         result.Should().HaveCount(2);
         result.First().Name.Should().Be("List 1");
         result.Last().Name.Should().Be("List 2");
-    }
-
-    [Fact]
+    }    [Fact]
     public async Task GetByIdAsync_WithValidId_ShouldReturnCustomerList()
     {
         // Arrange
         var customerList = new CustomerList 
         { 
-            Id = 1, 
+            Id = _testListId1, 
             Name = "Test List", 
-            Description = "Test Description",
-            CreatedAt = DateTime.UtcNow
+            Description = "Test Description"
         };
-        _mockRepository.Setup(r => r.GetByIdAsync(1)).ReturnsAsync(customerList);
+        _mockRepository.Setup(r => r.GetByIdAsync(_testListId1)).ReturnsAsync(customerList);
 
         // Act
-        var result = await _service.GetByIdAsync(1);
+        var result = await _service.GetByIdAsync(_testListId1);
 
         // Assert
         result.Should().NotBeNull();
@@ -60,14 +60,14 @@ public class CustomerListServiceTests
         result.Description.Should().Be("Test Description");
     }
 
-    [Fact]
-    public async Task GetByIdAsync_WithInvalidId_ShouldReturnNull()
+    [Fact]    public async Task GetByIdAsync_WithInvalidId_ShouldReturnNull()
     {
         // Arrange
-        _mockRepository.Setup(r => r.GetByIdAsync(999)).ReturnsAsync((CustomerList?)null);
+        var nonExistentId = Guid.NewGuid();
+        _mockRepository.Setup(r => r.GetByIdAsync(nonExistentId)).ReturnsAsync((CustomerList?)null);
 
         // Act
-        var result = await _service.GetByIdAsync(999);
+        var result = await _service.GetByIdAsync(nonExistentId);
 
         // Assert
         result.Should().BeNull();
@@ -77,20 +77,17 @@ public class CustomerListServiceTests
     public async Task CreateAsync_WithValidDto_ShouldCreateAndReturnCustomerList()
     {
         // Arrange
-        var dto = new CustomerListCreateDto
+        var dto = new CreateCustomerListDto
         {
             Name = "New List",
-            Description = "New Description",
-            SystemRef = "SYS001"
+            Description = "New Description",            SystemRef = "SYS001"
         };
-
         var createdEntity = new CustomerList
         {
-            Id = 1,
+            Id = _testListId1,
             Name = dto.Name,
             Description = dto.Description,
-            SystemRef = dto.SystemRef,
-            CreatedAt = DateTime.UtcNow
+            SystemRef = dto.SystemRef
         };
 
         _mockRepository.Setup(r => r.CreateAsync(It.IsAny<CustomerList>()))
@@ -109,118 +106,106 @@ public class CustomerListServiceTests
             c.Name == dto.Name && 
             c.Description == dto.Description && 
             c.SystemRef == dto.SystemRef)), Times.Once);
-    }
-
-    [Fact]
+    }    [Fact]
     public async Task UpdateAsync_WithValidDto_ShouldUpdateAndReturnCustomerList()
     {
         // Arrange
         var existingEntity = new CustomerList
         {
-            Id = 1,
+            Id = _testListId1,
             Name = "Old Name",
-            Description = "Old Description",
-            CreatedAt = DateTime.UtcNow.AddDays(-1)
+            Description = "Old Description"
         };
 
-        var updateDto = new CustomerListUpdateDto
+        var updateDto = new UpdateCustomerListDto
         {
             Name = "Updated Name",
             Description = "Updated Description",
             SystemRef = "SYS002"
         };
-
         var updatedEntity = new CustomerList
         {
-            Id = 1,
+            Id = _testListId1,
             Name = updateDto.Name,
             Description = updateDto.Description,
-            SystemRef = updateDto.SystemRef,
-            CreatedAt = existingEntity.CreatedAt,
-            UpdatedAt = DateTime.UtcNow
+            SystemRef = updateDto.SystemRef
         };
 
-        _mockRepository.Setup(r => r.GetByIdAsync(1)).ReturnsAsync(existingEntity);
+        _mockRepository.Setup(r => r.GetByIdAsync(_testListId1)).ReturnsAsync(existingEntity);
         _mockRepository.Setup(r => r.UpdateAsync(It.IsAny<CustomerList>()))
                       .ReturnsAsync(updatedEntity);
 
         // Act
-        var result = await _service.UpdateAsync(1, updateDto);
+        var result = await _service.UpdateAsync(_testListId1, updateDto);
 
         // Assert
         result.Should().NotBeNull();
         result!.Name.Should().Be("Updated Name");
         result.Description.Should().Be("Updated Description");
         result.SystemRef.Should().Be("SYS002");
-        
-        _mockRepository.Verify(r => r.UpdateAsync(It.Is<CustomerList>(c => 
-            c.Id == 1 && 
-            c.Name == updateDto.Name && 
-            c.Description == updateDto.Description)), Times.Once);
+          _mockRepository.Verify(r => r.UpdateAsync(It.Is<CustomerList>(c => 
+            c.Id == _testListId1 && 
+            c.Name == updateDto.Name &&            c.Description == updateDto.Description)), Times.Once);
     }
 
     [Fact]
     public async Task UpdateAsync_WithInvalidId_ShouldReturnNull()
     {
         // Arrange
-        var updateDto = new CustomerListUpdateDto
+        var updateDto = new UpdateCustomerListDto
         {
             Name = "Updated Name"
         };
         
-        _mockRepository.Setup(r => r.GetByIdAsync(999)).ReturnsAsync((CustomerList?)null);
+        _mockRepository.Setup(r => r.GetByIdAsync(Guid.NewGuid())).ReturnsAsync((CustomerList?)null);
 
         // Act
-        var result = await _service.UpdateAsync(999, updateDto);
+        var nonExistentId = Guid.NewGuid();
+        var result = await _service.UpdateAsync(nonExistentId, updateDto);
 
         // Assert
         result.Should().BeNull();
         _mockRepository.Verify(r => r.UpdateAsync(It.IsAny<CustomerList>()), Times.Never);
     }
 
-    [Fact]
-    public async Task DeleteAsync_WithValidId_ShouldReturnTrue()
+    [Fact]    public async Task DeleteAsync_WithValidId_ShouldReturnTrue()
     {
         // Arrange
         var existingEntity = new CustomerList
         {
-            Id = 1,
+            Id = _testListId1,
             Name = "Test List"
         };
         
-        _mockRepository.Setup(r => r.GetByIdAsync(1)).ReturnsAsync(existingEntity);
-        _mockRepository.Setup(r => r.DeleteAsync(1)).ReturnsAsync(true);
+        _mockRepository.Setup(r => r.ExistsAsync(_testListId1)).ReturnsAsync(true);
+        _mockRepository.Setup(r => r.DeleteAsync(_testListId1)).ReturnsAsync(true);
 
         // Act
-        var result = await _service.DeleteAsync(1);
+        var result = await _service.DeleteAsync(_testListId1);
 
         // Assert
         result.Should().BeTrue();
-        _mockRepository.Verify(r => r.DeleteAsync(1), Times.Once);
-    }
+        _mockRepository.Verify(r => r.DeleteAsync(_testListId1), Times.Once);    }
 
     [Fact]
-    public async Task DeleteAsync_WithInvalidId_ShouldReturnFalse()
+    public async Task DeleteAsync_WithInvalidId_ShouldThrowKeyNotFoundException()
     {
         // Arrange
-        _mockRepository.Setup(r => r.GetByIdAsync(999)).ReturnsAsync((CustomerList?)null);
+        var nonExistentId = Guid.NewGuid();
+        _mockRepository.Setup(r => r.ExistsAsync(nonExistentId)).ReturnsAsync(false);
 
-        // Act
-        var result = await _service.DeleteAsync(999);
-
-        // Assert
-        result.Should().BeFalse();
-        _mockRepository.Verify(r => r.DeleteAsync(It.IsAny<int>()), Times.Never);
+        // Act & Assert
+        await Assert.ThrowsAsync<KeyNotFoundException>(() => _service.DeleteAsync(nonExistentId));
+        _mockRepository.Verify(r => r.DeleteAsync(It.IsAny<Guid>()), Times.Never);
     }
 
-    [Fact]
-    public async Task GetByNameAsync_WithValidName_ShouldReturnCustomerLists()
+    [Fact]    public async Task GetByNameAsync_WithValidName_ShouldReturnCustomerLists()
     {
         // Arrange
         var customerLists = new List<CustomerList>
         {
-            new CustomerList { Id = 1, Name = "Test List 1" },
-            new CustomerList { Id = 2, Name = "Test List 2" }
+            new CustomerList { Id = _testListId1, Name = "Test List 1" },
+            new CustomerList { Id = _testListId2, Name = "Test List 2" }
         };
         
         _mockRepository.Setup(r => r.GetByNameAsync("Test")).ReturnsAsync(customerLists);

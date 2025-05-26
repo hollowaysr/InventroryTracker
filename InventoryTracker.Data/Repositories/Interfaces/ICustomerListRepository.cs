@@ -6,6 +6,8 @@ namespace InventoryTracker.Data.Repositories.Interfaces
         Task<IEnumerable<CustomerList>> GetAllAsync();
         Task<CustomerList?> GetByIdAsync(Guid id);
         Task<CustomerList?> GetByIdWithTagsAsync(Guid id);
+        Task<IEnumerable<CustomerList>> GetByNameAsync(string name);
+        Task<CustomerList?> GetBySystemRefAsync(string systemRef);
         Task<CustomerList> CreateAsync(CustomerList customerList);
         Task<CustomerList> UpdateAsync(CustomerList customerList);
         Task<bool> DeleteAsync(Guid id);

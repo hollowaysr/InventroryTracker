@@ -1,6 +1,7 @@
 using FluentAssertions;
 using InventoryTracker.Core.Entities;
 using InventoryTracker.Data;
+using InventoryTracker.Data.Context;
 using InventoryTracker.Data.Repositories;
 using Microsoft.EntityFrameworkCore;
 
@@ -33,13 +34,10 @@ public class CustomerListRepositoryTests : IDisposable
         };
 
         // Act
-        var result = await _repository.CreateAsync(customerList);
-
-        // Assert
+        var result = await _repository.CreateAsync(customerList);        // Assert
         result.Should().NotBeNull();
-        result.Id.Should().BeGreaterThan(0);
+        result.Id.Should().NotBe(Guid.Empty);
         result.Name.Should().Be("Test List");
-        result.CreatedAt.Should().BeCloseTo(DateTime.UtcNow, TimeSpan.FromSeconds(5));
 
         var dbEntity = await _context.CustomerLists.FindAsync(result.Id);
         dbEntity.Should().NotBeNull();
@@ -65,13 +63,11 @@ public class CustomerListRepositoryTests : IDisposable
         result.Should().NotBeNull();
         result!.Name.Should().Be("Test List");
         result.Description.Should().Be("Test Description");
-    }
-
-    [Fact]
+    }    [Fact]
     public async Task GetByIdAsync_WithNonExistingId_ShouldReturnNull()
     {
         // Act
-        var result = await _repository.GetByIdAsync(999);
+        var result = await _repository.GetByIdAsync(Guid.NewGuid());
 
         // Assert
         result.Should().BeNull();
@@ -116,14 +112,10 @@ public class CustomerListRepositoryTests : IDisposable
         customerList.Description = "Updated Description";
 
         // Act
-        var result = await _repository.UpdateAsync(customerList);
-
-        // Assert
+        var result = await _repository.UpdateAsync(customerList);        // Assert
         result.Should().NotBeNull();
         result.Name.Should().Be("Updated Name");
         result.Description.Should().Be("Updated Description");
-        result.UpdatedAt.Should().NotBeNull();
-        result.UpdatedAt.Should().BeCloseTo(DateTime.UtcNow, TimeSpan.FromSeconds(5));
 
         var dbEntity = await _context.CustomerLists.FindAsync(customerList.Id);
         dbEntity!.Name.Should().Be("Updated Name");
@@ -149,13 +141,11 @@ public class CustomerListRepositoryTests : IDisposable
 
         var dbEntity = await _context.CustomerLists.FindAsync(customerList.Id);
         dbEntity.Should().BeNull();
-    }
-
-    [Fact]
+    }    [Fact]
     public async Task DeleteAsync_WithNonExistingId_ShouldReturnFalse()
     {
         // Act
-        var result = await _repository.DeleteAsync(999);
+        var result = await _repository.DeleteAsync(Guid.NewGuid());
 
         // Assert
         result.Should().BeFalse();

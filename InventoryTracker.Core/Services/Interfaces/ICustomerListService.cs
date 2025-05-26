@@ -6,6 +6,7 @@ namespace InventoryTracker.Core.Services.Interfaces
         Task<IEnumerable<CustomerListDto>> GetAllAsync();
         Task<CustomerListDto?> GetByIdAsync(Guid id);
         Task<CustomerListDto?> GetByIdWithTagsAsync(Guid id);
+        Task<IEnumerable<CustomerListDto>> GetByNameAsync(string name);
         Task<CustomerListDto> CreateAsync(CreateCustomerListDto createDto);
         Task<CustomerListDto> UpdateAsync(Guid id, UpdateCustomerListDto updateDto);
         Task<bool> DeleteAsync(Guid id);

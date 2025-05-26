@@ -4,7 +4,8 @@ using InventoryTracker.Core.Services.Interfaces;
 using Microsoft.AspNetCore.Authorization;
 
 namespace InventoryTracker.Web.Controllers
-{    [ApiController]
+{
+    [ApiController]
     [Route("api/[controller]")]
     [Authorize(Policy = "RequireInventoryRole")]
     public class RfidTagsController : ControllerBase
@@ -31,10 +32,11 @@ namespace InventoryTracker.Web.Controllers
             }
             catch (Exception ex)
             {
-                _logger.LogError(ex, "Error retrieving RFID tags");
-                return StatusCode(500, "An error occurred while retrieving RFID tags");
+                _logger.LogError(ex, "Error retrieving RFID tags");                return StatusCode(500, "An error occurred while retrieving RFID tags");
             }
-        }        /// <summary>
+        }
+
+        /// <summary>
         /// Get RFID tags by customer list ID (FR006)
         /// </summary>
         [HttpGet("by-list/{listId}")]
@@ -46,11 +48,12 @@ namespace InventoryTracker.Web.Controllers
                 return Ok(rfidTags);
             }
             catch (Exception ex)
-            {
-                _logger.LogError(ex, "Error retrieving RFID tags for list ID {ListId}", listId);
+            {                _logger.LogError(ex, "Error retrieving RFID tags for list ID {ListId}", listId);
                 return StatusCode(500, "An error occurred while retrieving RFID tags");
             }
-        }        /// <summary>
+        }
+
+        /// <summary>
         /// Get a specific RFID tag by ID (FR007)
         /// </summary>
         [HttpGet("{id}")]
@@ -154,11 +157,12 @@ namespace InventoryTracker.Web.Controllers
                 return BadRequest(ex.Message);
             }
             catch (Exception ex)
-            {
-                _logger.LogError(ex, "Error creating RFID tags in bulk");
+            {                _logger.LogError(ex, "Error creating RFID tags in bulk");
                 return StatusCode(500, "An error occurred while creating RFID tags in bulk");
             }
-        }        /// <summary>
+        }
+
+        /// <summary>
         /// Update an existing RFID tag (FR009)
         /// </summary>
         [HttpPut("{id}")]
@@ -185,11 +189,12 @@ namespace InventoryTracker.Web.Controllers
                 return BadRequest(ex.Message);
             }
             catch (Exception ex)
-            {
-                _logger.LogError(ex, "Error updating RFID tag with ID {Id}", id);
+            {                _logger.LogError(ex, "Error updating RFID tag with ID {Id}", id);
                 return StatusCode(500, "An error occurred while updating the RFID tag");
             }
-        }        /// <summary>
+        }
+
+        /// <summary>
         /// Delete an RFID tag (FR009)
         /// </summary>
         [HttpDelete("{id}")]
@@ -212,9 +217,10 @@ namespace InventoryTracker.Web.Controllers
             catch (Exception ex)
             {
                 _logger.LogError(ex, "Error deleting RFID tag with ID {Id}", id);
-                return StatusCode(500, "An error occurred while deleting the RFID tag");
-            }
-        }        /// <summary>
+                return StatusCode(500, "An error occurred while deleting the RFID tag");            }
+        }
+
+        /// <summary>
         /// Delete multiple RFID tags in bulk (FR011)
         /// </summary>
         [HttpDelete("bulk")]

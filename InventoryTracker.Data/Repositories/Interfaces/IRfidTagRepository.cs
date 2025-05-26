@@ -7,6 +7,7 @@ namespace InventoryTracker.Data.Repositories.Interfaces
         Task<IEnumerable<RfidTag>> GetByListIdAsync(Guid listId);
         Task<RfidTag?> GetByIdAsync(Guid id);
         Task<RfidTag?> GetByRfidAsync(string rfid);
+        Task<IEnumerable<RfidTag>> GetByNameAsync(string name);
         Task<RfidTag> CreateAsync(RfidTag rfidTag);
         Task<IEnumerable<RfidTag>> CreateBulkAsync(IEnumerable<RfidTag> rfidTags);
         Task<RfidTag> UpdateAsync(RfidTag rfidTag);

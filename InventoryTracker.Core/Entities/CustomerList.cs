@@ -2,10 +2,10 @@ using System.ComponentModel.DataAnnotations;
 using System.ComponentModel.DataAnnotations.Schema;
 
 namespace InventoryTracker.Core.Entities
-{
-    /// <summary>
+{    /// <summary>
     /// Represents a customer list that contains RFID tags
-    /// </summary>    public class CustomerList
+    /// </summary>
+    public class CustomerList
     {
         [Key]
         [DatabaseGenerated(DatabaseGeneratedOption.Identity)]
@@ -33,7 +33,9 @@ namespace InventoryTracker.Core.Entities
     public long? LedgerEndTransactionId { get; set; }
 
     [Column("ledger_start_sequence_number")]
-    public long LedgerStartSequenceNumber { get; set; }    [Column("ledger_end_sequence_number")]
+        public long LedgerStartSequenceNumber { get; set; }
+    
+    [Column("ledger_end_sequence_number")]
     public long? LedgerEndSequenceNumber { get; set; }
     }
 }

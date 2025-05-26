@@ -96,7 +96,13 @@ PRINT '  RFID Tags: ' + CAST(@RfidCount AS VARCHAR(10));
 
 -- Log deployment completion
 INSERT INTO sys.extended_properties 
-VALUES ('MS_Description', 'Last deployment completed on ' + CONVERT(VARCHAR, GETDATE(), 120) + ' by ' + SYSTEM_USER, 'schema', 'dbo', DEFAULT, DEFAULT, DEFAULT, DEFAULT)
+(
+    name, value, level0type, level0name, level1type, level1name, level2type, level2name
+)
+SELECT 
+    'MS_Description', 
+    'Last deployment completed on ' + CONVERT(VARCHAR, GETDATE(), 120) + ' by ' + SYSTEM_USER,
+    'schema', 'dbo', NULL, NULL, NULL, NULL
 WHERE NOT EXISTS (
     SELECT 1 FROM sys.extended_properties 
     WHERE name = 'MS_Description' AND major_id = 0 AND minor_id = 0

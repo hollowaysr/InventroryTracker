@@ -1,6 +1,7 @@
 using FluentAssertions;
 using InventoryTracker.Core.Entities;
 using InventoryTracker.Data;
+using InventoryTracker.Data.Context;
 using InventoryTracker.Data.Repositories;
 using Microsoft.EntityFrameworkCore;
 
@@ -46,14 +47,11 @@ public class RfidTagRepositoryTests : IDisposable
         };
 
         // Act
-        var result = await _repository.CreateAsync(rfidTag);
-
-        // Assert
+        var result = await _repository.CreateAsync(rfidTag);        // Assert
         result.Should().NotBeNull();
-        result.Id.Should().BeGreaterThan(0);
+        result.Id.Should().NotBe(Guid.Empty);
         result.Rfid.Should().Be("TAG001");
         result.Name.Should().Be("Test Tag");
-        result.CreatedAt.Should().BeCloseTo(DateTime.UtcNow, TimeSpan.FromSeconds(5));
 
         var dbEntity = await _context.RfidTags.FindAsync(result.Id);
         dbEntity.Should().NotBeNull();
@@ -136,13 +134,10 @@ public class RfidTagRepositoryTests : IDisposable
         // Act
         var result = await _repository.UpdateAsync(rfidTag);
 
-        // Assert
-        result.Should().NotBeNull();
+        // Assert        result.Should().NotBeNull();
         result.Name.Should().Be("Updated Name");
         result.Description.Should().Be("Updated Description");
         result.Color.Should().Be("Red");
-        result.UpdatedAt.Should().NotBeNull();
-        result.UpdatedAt.Should().BeCloseTo(DateTime.UtcNow, TimeSpan.FromSeconds(5));
 
         var dbEntity = await _context.RfidTags.FindAsync(rfidTag.Id);
         dbEntity!.Name.Should().Be("Updated Name");

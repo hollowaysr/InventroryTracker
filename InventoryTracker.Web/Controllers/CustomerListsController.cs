@@ -29,11 +29,12 @@ namespace InventoryTracker.Web.Controllers
                 return Ok(customerLists);
             }
             catch (Exception ex)
-            {
-                _logger.LogError(ex, "Error retrieving customer lists");
+            {                _logger.LogError(ex, "Error retrieving customer lists");
                 return StatusCode(500, "An error occurred while retrieving customer lists");
             }
-        }        /// <summary>
+        }
+
+        /// <summary>
         /// Get a specific customer list by ID (FR002)
         /// </summary>
         [HttpGet("{id}")]
@@ -49,11 +50,12 @@ namespace InventoryTracker.Web.Controllers
                 return Ok(customerList);
             }
             catch (Exception ex)
-            {
-                _logger.LogError(ex, "Error retrieving customer list with ID {Id}", id);
+            {                _logger.LogError(ex, "Error retrieving customer list with ID {Id}", id);
                 return StatusCode(500, "An error occurred while retrieving the customer list");
             }
-        }        /// <summary>
+        }
+
+        /// <summary>
         /// Get a specific customer list with its RFID tags (FR002)
         /// </summary>
         [HttpGet("{id}/with-tags")]
@@ -97,11 +99,12 @@ namespace InventoryTracker.Web.Controllers
                 return BadRequest(ex.Message);
             }
             catch (Exception ex)
-            {
-                _logger.LogError(ex, "Error creating customer list");
+            {                _logger.LogError(ex, "Error creating customer list");
                 return StatusCode(500, "An error occurred while creating the customer list");
             }
-        }        /// <summary>
+        }
+
+        /// <summary>
         /// Update an existing customer list (FR004)
         /// </summary>
         [HttpPut("{id}")]
@@ -128,11 +131,12 @@ namespace InventoryTracker.Web.Controllers
                 return BadRequest(ex.Message);
             }
             catch (Exception ex)
-            {
-                _logger.LogError(ex, "Error updating customer list with ID {Id}", id);
+            {                _logger.LogError(ex, "Error updating customer list with ID {Id}", id);
                 return StatusCode(500, "An error occurred while updating the customer list");
             }
-        }        /// <summary>
+        }
+
+        /// <summary>
         /// Delete a customer list (FR005)
         /// </summary>
         [HttpDelete("{id}")]

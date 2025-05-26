@@ -2,6 +2,7 @@ using FluentAssertions;
 using InventoryTracker.Core.DTOs;
 using InventoryTracker.Core.Entities;
 using InventoryTracker.Data;
+using InventoryTracker.Data.Context;
 using Microsoft.AspNetCore.Hosting;
 using Microsoft.AspNetCore.Mvc.Testing;
 using Microsoft.EntityFrameworkCore;
@@ -36,16 +37,16 @@ public class RfidTagsControllerIntegrationTests : IClassFixture<WebApplicationFa
                 services.AddDbContext<InventoryTrackerDbContext>(options =>
                     options.UseInMemoryDatabase(databaseName: Guid.NewGuid().ToString()));
             });
-        });
-
-        _client = _factory.CreateClient();
+        });        _client = _factory.CreateClient();
         
         // Get the in-memory database context
         var scope = _factory.Services.CreateScope();
         _context = scope.ServiceProvider.GetRequiredService<InventoryTrackerDbContext>();
         
         SeedTestData();
-    }    private void SeedTestData()
+    }
+
+    private void SeedTestData()
     {
         var customerList = new CustomerList
         {
@@ -143,11 +144,10 @@ public class RfidTagsControllerIntegrationTests : IClassFixture<WebApplicationFa
 
     [Fact]
     public async Task ExportTags_WithCsvFormat_ShouldReturnCsvFile()
-    {
-        // Arrange
+    {        // Arrange
         var exportDto = new ExportRfidTagsDto
         {
-            ListId = 1,
+            ListId = _testCustomerListId,
             Format = ExportFormat.Csv,
             IncludeMetadata = true
         };
@@ -167,11 +167,10 @@ public class RfidTagsControllerIntegrationTests : IClassFixture<WebApplicationFa
 
     [Fact]
     public async Task ExportTags_WithJsonFormat_ShouldReturnJsonFile()
-    {
-        // Arrange
+    {        // Arrange
         var exportDto = new ExportRfidTagsDto
         {
-            ListId = 1,
+            ListId = _testCustomerListId,
             Format = ExportFormat.Json,
             IncludeMetadata = true
         };
@@ -191,11 +190,10 @@ public class RfidTagsControllerIntegrationTests : IClassFixture<WebApplicationFa
 
     [Fact]
     public async Task ExportTags_WithXmlFormat_ShouldReturnXmlFile()
-    {
-        // Arrange
+    {        // Arrange
         var exportDto = new ExportRfidTagsDto
         {
-            ListId = 1,
+            ListId = _testCustomerListId,
             Format = ExportFormat.Xml,
             IncludeMetadata = false // Test without metadata
         };
@@ -212,12 +210,11 @@ public class RfidTagsControllerIntegrationTests : IClassFixture<WebApplicationFa
         content.Should().Contain("<RfidExport>");
         content.Should().Contain("TAG001");
         content.Should().NotContain("<Name>"); // Metadata should not be included
-    }
-
-    [Fact]
+    }    [Fact]
     public async Task ExportTags_WithInvalidListId_ShouldReturn400()
     {
-        // Arrange        var exportDto = new ExportRfidTagsDto
+        // Arrange
+        var exportDto = new ExportRfidTagsDto
         {
             ListId = Guid.NewGuid(),
             Format = ExportFormat.Csv
@@ -232,11 +229,10 @@ public class RfidTagsControllerIntegrationTests : IClassFixture<WebApplicationFa
 
     [Fact]
     public async Task ExportAndEmailTags_WithValidEmail_ShouldReturn200()
-    {
-        // Arrange
+    {        // Arrange
         var exportDto = new ExportRfidTagsDto
         {
-            ListId = 1,
+            ListId = _testCustomerListId,
             Format = ExportFormat.Csv,
             EmailAddress = "test@example.com",
             IncludeMetadata = true
@@ -253,13 +249,12 @@ public class RfidTagsControllerIntegrationTests : IClassFixture<WebApplicationFa
         result.Should().Contain("test@example.com");
     }
 
-    [Fact]
-    public async Task ExportAndEmailTags_WithoutEmail_ShouldReturn400()
+    [Fact]    public async Task ExportAndEmailTags_WithoutEmail_ShouldReturn400()
     {
         // Arrange
         var exportDto = new ExportRfidTagsDto
         {
-            ListId = 1,
+            ListId = _testCustomerListId,
             Format = ExportFormat.Csv
             // EmailAddress not set
         };
@@ -271,18 +266,17 @@ public class RfidTagsControllerIntegrationTests : IClassFixture<WebApplicationFa
         response.StatusCode.Should().Be(HttpStatusCode.BadRequest);
     }
 
-    [Fact]
-    public async Task GetByListId_ShouldReturnTagsForList()
+    [Fact]    public async Task GetByListId_ShouldReturnTagsForList()
     {
         // Act
-        var response = await _client.GetAsync("/api/rfidtags/by-list/1");
+        var response = await _client.GetAsync($"/api/rfidtags/by-list/{_testCustomerListId}");
 
         // Assert
         response.StatusCode.Should().Be(HttpStatusCode.OK);
         
         var tags = await response.Content.ReadFromJsonAsync<List<RfidTagDto>>();
         tags.Should().HaveCount(2);
-        tags.Should().OnlyContain(t => t.ListId == 1);
+        tags.Should().OnlyContain(t => t.ListId == _testCustomerListId);
     }
 
     public void Dispose()

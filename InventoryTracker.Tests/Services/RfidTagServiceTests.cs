@@ -1,6 +1,7 @@
 using FluentAssertions;
 using InventoryTracker.Core.DTOs;
 using InventoryTracker.Core.Entities;
+using InventoryTracker.Core.Services.Interfaces;
 using InventoryTracker.Data.Repositories.Interfaces;
 using InventoryTracker.Data.Services;
 using Moq;
@@ -15,9 +16,7 @@ public class RfidTagServiceTests
     private readonly RfidTagService _service;
     private readonly Guid _testListId = Guid.Parse("11111111-1111-1111-1111-111111111111");
     private readonly Guid _testTagId1 = Guid.Parse("22222222-2222-2222-2222-222222222222");
-    private readonly Guid _testTagId2 = Guid.Parse("33333333-3333-3333-3333-333333333333");
-
-    public RfidTagServiceTests()
+    private readonly Guid _testTagId2 = Guid.Parse("33333333-3333-3333-3333-333333333333");    public RfidTagServiceTests()
     {
         _mockRepository = new Mock<IRfidTagRepository>();
         _mockCustomerListRepository = new Mock<ICustomerListRepository>();
@@ -25,7 +24,8 @@ public class RfidTagServiceTests
         _service = new RfidTagService(_mockRepository.Object, _mockCustomerListRepository.Object, _mockEmailService.Object);
     }
 
-    [Fact]    public async Task GetAllAsync_ShouldReturnAllRfidTags()
+    [Fact]
+    public async Task GetAllAsync_ShouldReturnAllRfidTags()
     {
         // Arrange
         var rfidTags = new List<RfidTag>

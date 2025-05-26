@@ -2,6 +2,7 @@ using InventoryTracker.Core.DTOs;
 using InventoryTracker.Core.Entities;
 using InventoryTracker.Core.Services.Interfaces;
 using InventoryTracker.Data.Repositories.Interfaces;
+using System.Linq;
 
 namespace InventoryTracker.Data.Services
 {
@@ -12,9 +13,7 @@ namespace InventoryTracker.Data.Services
         public CustomerListService(ICustomerListRepository customerListRepository)
         {
             _customerListRepository = customerListRepository;
-        }
-
-        public async Task<IEnumerable<CustomerListDto>> GetAllAsync()
+        }        public async Task<IEnumerable<CustomerListDto>> GetAllAsync()
         {
             var customerLists = await _customerListRepository.GetAllAsync();
             return customerLists.Select(MapToDto);
@@ -30,6 +29,12 @@ namespace InventoryTracker.Data.Services
             return customerList != null ? MapToDtoWithTags(customerList) : null;
         }
 
+        public async Task<IEnumerable<CustomerListDto>> GetByNameAsync(string name)
+        {
+            var customerLists = await _customerListRepository.GetByNameAsync(name);
+            return customerLists.Select(MapToDto);
+        }
+
         public async Task<CustomerListDto> CreateAsync(CreateCustomerListDto createDto)
         {
             // Validate unique name
@@ -43,11 +48,11 @@ namespace InventoryTracker.Data.Services
                 Name = createDto.Name,
                 Description = createDto.Description,
                 SystemRef = createDto.SystemRef
-            };
-
-            var createdCustomerList = await _customerListRepository.CreateAsync(customerList);
+            };            var createdCustomerList = await _customerListRepository.CreateAsync(customerList);
             return MapToDto(createdCustomerList);
-        }        public async Task<CustomerListDto> UpdateAsync(Guid id, UpdateCustomerListDto updateDto)
+        }
+
+        public async Task<CustomerListDto> UpdateAsync(Guid id, UpdateCustomerListDto updateDto)
         {
             var existingCustomerList = await _customerListRepository.GetByIdAsync(id);
             if (existingCustomerList == null)
@@ -77,12 +82,12 @@ namespace InventoryTracker.Data.Services
             }
 
             return await _customerListRepository.DeleteAsync(id);
-        }
-
-        public async Task<bool> ExistsAsync(Guid id)
+        }        public async Task<bool> ExistsAsync(Guid id)
         {
             return await _customerListRepository.ExistsAsync(id);
-        }        private static CustomerListDto MapToDto(CustomerList customerList)
+        }
+
+        private static CustomerListDto MapToDto(CustomerList customerList)
         {
             return new CustomerListDto
             {

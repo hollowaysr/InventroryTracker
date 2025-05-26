@@ -54,11 +54,25 @@ namespace InventoryTracker.Data.Repositories
             _context.CustomerLists.Remove(customerList);
             await _context.SaveChangesAsync();
             return true;
-        }
-
-        public async Task<bool> ExistsAsync(Guid id)
+        }        public async Task<bool> ExistsAsync(Guid id)
         {
             return await _context.CustomerLists.AnyAsync(cl => cl.Id == id);
+        }
+
+        public async Task<IEnumerable<CustomerList>> GetByNameAsync(string name)
+        {
+            return await _context.CustomerLists
+                .Include(cl => cl.RfidTags)
+                .Where(cl => cl.Name.Contains(name))
+                .OrderBy(cl => cl.Name)
+                .ToListAsync();
+        }
+
+        public async Task<CustomerList?> GetBySystemRefAsync(string systemRef)
+        {
+            return await _context.CustomerLists
+                .Include(cl => cl.RfidTags)
+                .FirstOrDefaultAsync(cl => cl.SystemRef == systemRef);
         }
 
         public async Task<bool> ExistsByNameAsync(string name, Guid? excludeId = null)

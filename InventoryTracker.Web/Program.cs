@@ -7,96 +7,17 @@ using InventoryTracker.Core.Services.Interfaces;
 using Microsoft.AspNetCore.Diagnostics.HealthChecks;
 using Microsoft.Extensions.Diagnostics.HealthChecks;
 using System.Text.Json;
-using Microsoft.Identity.Web;
-using Microsoft.AspNetCore.Authentication.JwtBearer;
-using Microsoft.OpenApi.Models;
-using Microsoft.AspNetCore.RateLimiting;
-using System.Threading.RateLimiting;
 
 var builder = WebApplication.CreateBuilder(args);
 
 // Add services to the container
 builder.Services.AddControllers();
 builder.Services.AddEndpointsApiExplorer();
+builder.Services.AddSwaggerGen();
 
-// Add Azure AD authentication
-builder.Services.AddAuthentication(JwtBearerDefaults.AuthenticationScheme)
-    .AddMicrosoftIdentityWebApi(builder.Configuration.GetSection("AzureAd"));
-
-builder.Services.AddAuthorization(options =>
-{
-    options.AddPolicy("RequireInventoryRole", policy =>
-        policy.RequireClaim("extension_InventoryRole", "Admin", "Manager", "User"));
-});
-
-builder.Services.AddSwaggerGen(c =>
-{
-    c.SwaggerDoc("v1", new() { 
-        Title = "RFID Inventory Tracker API", 
-        Version = "v1",
-        Description = "API for managing RFID inventory tracking with customer lists and tag metadata"
-    });
-    
-    // Add JWT authentication to Swagger
-    c.AddSecurityDefinition("Bearer", new OpenApiSecurityScheme
-    {
-        Description = "JWT Authorization header using the Bearer scheme. Enter 'Bearer' [space] and then your token in the text input below.",
-        Name = "Authorization",
-        In = ParameterLocation.Header,
-        Type = SecuritySchemeType.ApiKey,
-        Scheme = "Bearer"
-    });
-    
-    c.AddSecurityRequirement(new OpenApiSecurityRequirement
-    {
-        {
-            new OpenApiSecurityScheme
-            {
-                Reference = new OpenApiReference
-                {
-                    Type = ReferenceType.SecurityScheme,
-                    Id = "Bearer"
-                }
-            },
-            Array.Empty<string>()
-        }
-    });
-});
-
-// Add Application Insights telemetry (Azure best practice)
-builder.Services.AddApplicationInsightsTelemetry();
-
-// Configure Entity Framework with environment variable substitution
-var connectionString = builder.Configuration.GetConnectionString("DefaultConnection");
-if (!string.IsNullOrEmpty(connectionString) && connectionString.Contains("${MSSQL_PASSWORD}"))
-{
-    var password = Environment.GetEnvironmentVariable("MSSQL_PASSWORD");
-    if (!string.IsNullOrEmpty(password))
-    {
-        connectionString = connectionString.Replace("${MSSQL_PASSWORD}", password);
-    }
-    else
-    {
-        // For development, try to read from user secrets or configuration
-        var configPassword = builder.Configuration["DatabasePassword"];
-        if (!string.IsNullOrEmpty(configPassword))
-        {
-            connectionString = connectionString.Replace("${MSSQL_PASSWORD}", configPassword);
-        }
-        else
-        {
-            throw new InvalidOperationException("Database password not found. Set MSSQL_PASSWORD environment variable or DatabasePassword configuration value.");
-        }
-    }
-}
-
+// Add database context
 builder.Services.AddDbContext<InventoryTrackerDbContext>(options =>
-    options.UseSqlServer(connectionString));
-
-// Add health checks (Azure best practice)
-builder.Services.AddHealthChecks()
-    .AddDbContextCheck<InventoryTrackerDbContext>("database")
-    .AddCheck("self", () => HealthCheckResult.Healthy("API is running"));
+    options.UseSqlServer(builder.Configuration.GetConnectionString("DefaultConnection")));
 
 // Register repositories
 builder.Services.AddScoped<ICustomerListRepository, CustomerListRepository>();
@@ -107,53 +28,22 @@ builder.Services.AddScoped<ICustomerListService, CustomerListService>();
 builder.Services.AddScoped<IRfidTagService, RfidTagService>();
 builder.Services.AddScoped<IEmailService, EmailService>();
 
-// Configure CORS for development
+// Add health checks
+builder.Services.AddHealthChecks()
+    .AddSqlServer(builder.Configuration.GetConnectionString("DefaultConnection")!)
+    .AddCheck("api", () => HealthCheckResult.Healthy("API is running"));
+
+// Add CORS
 builder.Services.AddCors(options =>
 {
-    options.AddPolicy("DevPolicy", policy =>
-    {
-        policy.AllowAnyOrigin()
-              .AllowAnyMethod()
-              .AllowAnyHeader();
-    });
+    options.AddPolicy("AllowAll",
+        policy =>
+        {
+            policy.AllowAnyOrigin()
+                  .AllowAnyMethod()
+                  .AllowAnyHeader();
+        });
 });
-
-// Add response compression (performance best practice)
-builder.Services.AddResponseCompression();
-
-// Add rate limiting (security best practice)
-builder.Services.AddRateLimiter(options =>
-{
-    options.GlobalLimiter = PartitionedRateLimiter.Create<HttpContext, string>(httpContext =>
-        RateLimitPartition.GetFixedWindowLimiter(
-            partitionKey: httpContext.User.Identity?.Name ?? httpContext.Connection.RemoteIpAddress?.ToString() ?? "anonymous",
-            factory: partition => new FixedWindowRateLimiterOptions
-            {
-                AutoReplenishment = true,
-                PermitLimit = 100,
-                Window = TimeSpan.FromMinutes(1)
-            }));
-    
-    options.OnRejected = (context, cancellationToken) =>
-    {
-        context.HttpContext.Response.StatusCode = 429;
-        return new ValueTask();
-    };
-});
-
-// Add Redis cache (if connection string is provided)
-var redisConnectionString = builder.Configuration.GetConnectionString("Redis");
-if (!string.IsNullOrEmpty(redisConnectionString))
-{
-    builder.Services.AddStackExchangeRedisCache(options =>
-    {
-        options.Configuration = redisConnectionString;
-    });
-}
-else
-{
-    builder.Services.AddMemoryCache();
-}
 
 var app = builder.Build();
 
@@ -161,26 +51,17 @@ var app = builder.Build();
 if (app.Environment.IsDevelopment())
 {
     app.UseSwagger();
-    app.UseSwaggerUI(c =>
-    {
-        c.SwaggerEndpoint("/swagger/v1/swagger.json", "RFID Inventory Tracker API v1");
-        c.RoutePrefix = string.Empty; // Serve Swagger UI at root
-    });
-    app.UseCors("DevPolicy");
-}
-else
-{
-    app.UseExceptionHandler("/Error");
-    app.UseHsts();
+    app.UseSwaggerUI();
 }
 
-// Add response compression
-app.UseResponseCompression();
+app.UseHttpsRedirection();
+app.UseCors("AllowAll");
 
-// Add rate limiting
-app.UseRateLimiter();
+// Basic routing - no authentication for now
+app.UseRouting();
+app.MapControllers();
 
-// Add health check endpoints (Azure best practice)
+// Health check endpoints
 app.MapHealthChecks("/health", new HealthCheckOptions
 {
     ResponseWriter = async (context, report) =>
@@ -189,15 +70,15 @@ app.MapHealthChecks("/health", new HealthCheckOptions
         var response = new
         {
             status = report.Status.ToString(),
-            checks = report.Entries.Select(x => new
+            checks = report.Entries.Select(entry => new
             {
-                name = x.Key,
-                status = x.Value.Status.ToString(),
-                exception = x.Value.Exception?.Message,
-                duration = x.Value.Duration.ToString()
+                name = entry.Key,
+                status = entry.Value.Status.ToString(),
+                description = entry.Value.Description,
+                duration = entry.Value.Duration.TotalMilliseconds
             })
         };
-        await context.Response.WriteAsync(JsonSerializer.Serialize(response, new JsonSerializerOptions { WriteIndented = true }));
+        await context.Response.WriteAsync(JsonSerializer.Serialize(response));
     }
 });
 
@@ -211,9 +92,7 @@ app.MapHealthChecks("/health/live", new HealthCheckOptions
     Predicate = _ => false
 });
 
-app.UseHttpsRedirection();
-app.UseAuthentication();
-app.UseAuthorization();
-app.MapControllers();
-
 app.Run();
+
+// Make the implicit Program class public for testing
+public partial class Program { }
