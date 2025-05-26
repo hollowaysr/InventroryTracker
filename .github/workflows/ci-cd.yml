@@ -51,18 +51,17 @@ jobs:
         key: ${{ runner.os }}-nuget-${{ hashFiles('**/*.csproj') }}
         restore-keys: |
           ${{ runner.os }}-nuget-
-          
-    - name: 🔄 Restore dependencies
-      run: dotnet restore
+            - name: 🔄 Restore dependencies
+      run: dotnet restore InventoryTracker.sln
       working-directory: ${{ env.WORKING_DIRECTORY }}
       
     - name: 🔨 Build solution
-      run: dotnet build --no-restore --configuration Release
+      run: dotnet build InventoryTracker.sln --no-restore --configuration Release
       working-directory: ${{ env.WORKING_DIRECTORY }}
       
     - name: 🧪 Run unit tests
       run: |
-        dotnet test --no-build --configuration Release --verbosity normal \
+        dotnet test InventoryTracker.sln --no-build --configuration Release --verbosity normal \
           --collect:"XPlat Code Coverage" --results-directory ./coverage \
           --logger "trx;LogFileName=test-results.trx"
       working-directory: ${{ env.WORKING_DIRECTORY }}
@@ -112,9 +111,8 @@ jobs:
       uses: actions/setup-dotnet@v4
       with:
         dotnet-version: ${{ env.DOTNET_VERSION }}
-        
-    - name: 🔨 Build for security scan
-      run: dotnet build --configuration Release
+          - name: 🔨 Build for security scan
+      run: dotnet build InventoryTracker.sln --configuration Release
       working-directory: ${{ env.WORKING_DIRECTORY }}
       
     - name: 🔍 Perform CodeQL Analysis
