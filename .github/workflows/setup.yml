@@ -70,9 +70,9 @@ jobs:
       uses: azure/login@v2
       with:
         creds: ${{ secrets.AZURE_CREDENTIALS_STAGING }}
-        
-    - name: 🏗️ Create Terraform Backend Resources
-      run: |        echo "Creating Terraform state storage..."
+          - name: 🏗️ Create Terraform Backend Resources
+      run: |
+        echo "Creating Terraform state storage..."
         
         # Variables
         LOCATION="West US 2"

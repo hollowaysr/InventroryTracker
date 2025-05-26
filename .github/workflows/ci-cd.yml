@@ -43,15 +43,15 @@ jobs:
       uses: actions/setup-dotnet@v4
       with:
         dotnet-version: ${{ env.DOTNET_VERSION }}
-        
-    - name: 📦 Cache dependencies
+          - name: 📦 Cache dependencies
       uses: actions/cache@v4
       with:
         path: ~/.nuget/packages
         key: ${{ runner.os }}-nuget-${{ hashFiles('**/*.csproj') }}
         restore-keys: |
           ${{ runner.os }}-nuget-
-            - name: 🔄 Restore dependencies
+          
+    - name: 🔄 Restore dependencies
       run: dotnet restore InventoryTracker.sln
       working-directory: ${{ env.WORKING_DIRECTORY }}
       
@@ -106,12 +106,12 @@ jobs:
       uses: github/codeql-action/init@v3
       with:
         languages: csharp
-        
-    - name: 🔧 Setup .NET
+          - name: 🔧 Setup .NET
       uses: actions/setup-dotnet@v4
       with:
         dotnet-version: ${{ env.DOTNET_VERSION }}
-          - name: 🔨 Build for security scan
+        
+    - name: 🔨 Build for security scan
       run: dotnet build InventoryTracker.sln --configuration Release
       working-directory: ${{ env.WORKING_DIRECTORY }}
       
