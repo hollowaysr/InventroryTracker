@@ -90,9 +90,9 @@ jobs:
       uses: azure/login@v2
       with:
         creds: ${{ secrets.AZURE_CREDENTIALS_STAGING }}
-        
-    - name: ⚙️ Terraform Init
-      run: |        terraform init \
+          - name: ⚙️ Terraform Init
+      run: |
+        terraform init \
           -backend-config="resource_group_name=${{ secrets.TF_STATE_RESOURCE_GROUP }}" \
           -backend-config="storage_account_name=${{ secrets.TF_STATE_STORAGE_ACCOUNT }}" \
           -backend-config="container_name=tfstate" \
@@ -224,10 +224,10 @@ jobs:
       uses: azure/login@v2
       with:
         creds: ${{ secrets.AZURE_CREDENTIALS_PRODUCTION }}
-        
-    - name: ⚙️ Terraform Init
+          - name: ⚙️ Terraform Init
       run: |
-        terraform init \          -backend-config="resource_group_name=${{ secrets.TF_STATE_RESOURCE_GROUP }}" \
+        terraform init \
+          -backend-config="resource_group_name=${{ secrets.TF_STATE_RESOURCE_GROUP }}" \
           -backend-config="storage_account_name=${{ secrets.TF_STATE_STORAGE_ACCOUNT }}" \
           -backend-config="container_name=tfstate" \
           -backend-config="key=rfid-inventory-tracker-production.terraform.tfstate"
@@ -372,14 +372,13 @@ jobs:
           -backend-config="container_name=tfstate" \
           -backend-config="key=rfid-inventory-tracker-${{ github.event.inputs.environment }}.terraform.tfstate"
       working-directory: ${{ env.TF_WORKING_DIR }}
-      
-    - name: 📋 Create terraform.tfvars
+        - name: 📋 Create terraform.tfvars
       run: |
         ENV_NAME="${{ github.event.inputs.environment }}"
         if [ "$ENV_NAME" = "production" ]; then
           ENV_NAME="prod"
         fi
-          cat > terraform.tfvars << EOF
+        cat > terraform.tfvars << EOF
         environment = "$ENV_NAME"
         location = "West US 2"
         app_name = "rfid-inventory-tracker"
