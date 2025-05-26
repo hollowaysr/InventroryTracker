@@ -79,13 +79,13 @@ jobs:
     steps:
     - name: 📥 Checkout code
       uses: actions/checkout@v4
-      
-    - name: 🔧 Setup Terraform
+        - name: 🔧 Setup Terraform
       uses: hashicorp/setup-terraform@v3
       with:
         terraform_version: ${{ env.TF_VERSION }}
         terraform_wrapper: false
-      - name: 🔐 Azure Login
+        
+    - name: 🔐 Azure Login
       uses: azure/login@v2
       with:
         creds: ${{ secrets.AZURE_CREDENTIALS_STAGING }}
@@ -219,12 +219,12 @@ jobs:
       with:
         terraform_version: ${{ env.TF_VERSION }}
         terraform_wrapper: false
-        
-    - name: 🔐 Azure Login
+          - name: 🔐 Azure Login
       uses: azure/login@v2
       with:
         creds: ${{ secrets.AZURE_CREDENTIALS_PRODUCTION }}
-          - name: ⚙️ Terraform Init
+        
+    - name: ⚙️ Terraform Init
       run: |
         terraform init \
           -backend-config="resource_group_name=${{ secrets.TF_STATE_RESOURCE_GROUP }}" \
@@ -367,12 +367,12 @@ jobs:
     - name: ⚙️ Terraform Init
       run: |
         terraform init \
-          -backend-config="resource_group_name=${{ secrets.TF_STATE_RESOURCE_GROUP }}" \
-          -backend-config="storage_account_name=${{ secrets.TF_STATE_STORAGE_ACCOUNT }}" \
+          -backend-config="resource_group_name=${{ secrets.TF_STATE_RESOURCE_GROUP }}" \          -backend-config="storage_account_name=${{ secrets.TF_STATE_STORAGE_ACCOUNT }}" \
           -backend-config="container_name=tfstate" \
           -backend-config="key=rfid-inventory-tracker-${{ github.event.inputs.environment }}.terraform.tfstate"
       working-directory: ${{ env.TF_WORKING_DIR }}
-        - name: 📋 Create terraform.tfvars
+      
+    - name: 📋 Create terraform.tfvars
       run: |
         ENV_NAME="${{ github.event.inputs.environment }}"
         if [ "$ENV_NAME" = "production" ]; then

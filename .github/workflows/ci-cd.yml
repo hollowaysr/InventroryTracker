@@ -38,17 +38,18 @@ jobs:
     steps:
     - name: 📥 Checkout code
       uses: actions/checkout@v4
-      
-    - name: 🔧 Setup .NET
+        - name: 🔧 Setup .NET
       uses: actions/setup-dotnet@v4
       with:
         dotnet-version: ${{ env.DOTNET_VERSION }}
-          - name: 📦 Cache dependencies
+        
+    - name: 📦 Cache dependencies
       uses: actions/cache@v4
       with:
         path: ~/.nuget/packages
         key: ${{ runner.os }}-nuget-${{ hashFiles('**/*.csproj') }}
         restore-keys: |
+          ${{ runner.os }}-nuget-
           ${{ runner.os }}-nuget-
           
     - name: 🔄 Restore dependencies
@@ -101,12 +102,12 @@ jobs:
     steps:
     - name: 📥 Checkout code
       uses: actions/checkout@v4
-      
-    - name: 🔒 Initialize CodeQL
+        - name: 🔒 Initialize CodeQL
       uses: github/codeql-action/init@v3
       with:
         languages: csharp
-          - name: 🔧 Setup .NET
+        
+    - name: 🔧 Setup .NET
       uses: actions/setup-dotnet@v4
       with:
         dotnet-version: ${{ env.DOTNET_VERSION }}
